@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 const ODDS_API_KEY = "cf8b575dd9664b4917486edb7c515b39";
 const ODDS_BASE    = "https://api.the-odds-api.com/v4";
 
-// Sport keys per The Odds API
+// Sport keys per The Odds API — sempre attivi
 const SPORT_KEYS = [
   "soccer_italy_serie_a",
   "soccer_uefa_champs_league",
@@ -14,23 +14,29 @@ const SPORT_KEYS = [
   "soccer_spain_la_liga",
   "soccer_germany_bundesliga",
   "soccer_france_ligue_one",
+  "soccer_uefa_europa_league",
+  "soccer_conmebol_copa_libertadores",
   "basketball_nba",
-  "basketball_euroleague",
-  "tennis_atp_french_open",
-  "tennis_wta_french_open",
+  "americanfootball_nfl",
+  "icehockey_nhl",
+  "baseball_mlb",
+  "mma_mixed_martial_arts",
 ];
 
 const SPORT_LABELS = {
-  soccer_italy_serie_a:       { name:"Serie A",         emoji:"⚽", cat:"Calcio" },
-  soccer_uefa_champs_league:  { name:"Champions League", emoji:"⚽", cat:"Calcio" },
-  soccer_epl:                 { name:"Premier League",  emoji:"⚽", cat:"Calcio" },
-  soccer_spain_la_liga:       { name:"La Liga",         emoji:"⚽", cat:"Calcio" },
-  soccer_germany_bundesliga:  { name:"Bundesliga",      emoji:"⚽", cat:"Calcio" },
-  soccer_france_ligue_one:    { name:"Ligue 1",         emoji:"⚽", cat:"Calcio" },
-  basketball_nba:             { name:"NBA",             emoji:"🏀", cat:"Basket" },
-  basketball_euroleague:      { name:"Eurolega",        emoji:"🏀", cat:"Basket" },
-  tennis_atp_french_open:     { name:"ATP",             emoji:"🎾", cat:"Tennis" },
-  tennis_wta_french_open:     { name:"WTA",             emoji:"🎾", cat:"Tennis" },
+  soccer_italy_serie_a:              { name:"Serie A",          emoji:"⚽", cat:"Calcio" },
+  soccer_uefa_champs_league:         { name:"Champions League", emoji:"⚽", cat:"Calcio" },
+  soccer_epl:                        { name:"Premier League",   emoji:"⚽", cat:"Calcio" },
+  soccer_spain_la_liga:              { name:"La Liga",          emoji:"⚽", cat:"Calcio" },
+  soccer_germany_bundesliga:         { name:"Bundesliga",       emoji:"⚽", cat:"Calcio" },
+  soccer_france_ligue_one:           { name:"Ligue 1",          emoji:"⚽", cat:"Calcio" },
+  soccer_uefa_europa_league:         { name:"Europa League",    emoji:"⚽", cat:"Calcio" },
+  soccer_conmebol_copa_libertadores: { name:"Copa Libertadores",emoji:"⚽", cat:"Calcio" },
+  basketball_nba:                    { name:"NBA",              emoji:"🏀", cat:"Basket" },
+  americanfootball_nfl:              { name:"NFL",              emoji:"🏈", cat:"Football" },
+  icehockey_nhl:                     { name:"NHL",              emoji:"🏒", cat:"Hockey" },
+  baseball_mlb:                      { name:"MLB",              emoji:"⚾", cat:"Baseball" },
+  mma_mixed_martial_arts:            { name:"MMA",              emoji:"🥊", cat:"MMA" },
 };
 
 // ═══════════════════════════════════════════════════════════
