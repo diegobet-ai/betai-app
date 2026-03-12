@@ -544,10 +544,21 @@ function TodayMatches({ lang, onMatchesLoaded }) {
       });
 
       allMatches.sort((a,b) => a.timestamp - b.timestamp);
-      setMatches(allMatches);
-      if (onMatchesLoaded) onMatchesLoaded(allMatches);
+      // Mostra partite dei prossimi 7 giorni (non solo oggi)
+      const now = new Date();
+      const weekAhead = new Date(now.getTime() + 7*24*60*60*1000);
+      const upcoming = allMatches.filter(m => m.timestamp >= now && m.timestamp <= weekAhead);
+      const toShow = upcoming.length > 0 ? upcoming : allMatches;
+      setMatches(toShow);
+      if (onMatchesLoaded) onMatchesLoaded(toShow);
+      console.log("BetAI: totale partite API:", allMatches.length, "| prossimi 7gg:", upcoming.length, "| mostrate:", toShow.length);
+      if(allMatches.length > 0) {
+        console.log("Prima partita:", allMatches[0].teams, allMatches[0].timestamp.toISOString());
+        console.log("Ultima partita:", allMatches[allMatches.length-1].teams, allMatches[allMatches.length-1].timestamp.toISOString());
+      }
     } catch(e) {
-      setError(lang==="it"?"Errore nel caricamento delle partite":"Error loading matches");
+      console.error("BetAI fetch error:", e);
+      setError(lang==="it"?"Errore nel caricamento: "+e.message:"Error loading: "+e.message);
     } finally {
       setLoading(false);
     }
