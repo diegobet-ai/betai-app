@@ -6,12 +6,16 @@ export default async function handler(req, res) {
   const API_KEY = "b4ae8c510b00a8c669c20073c01e92e5";
 
   try {
-    const markets = "h2h,totals,spreads";
-    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=${markets}&oddsFormat=decimal`;
+    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${API_KEY}&regions=eu&markets=h2h,totals&oddsFormat=decimal`;
     const response = await fetch(url);
     const data = await response.json();
+    // Se errore dall'API, ritorna array vuoto invece di bloccare tutto
+    if (data.error_code) {
+      res.status(200).json([]);
+      return;
+    }
     res.status(200).json(data);
   } catch(e) {
-    res.status(500).json({ error: "Failed" });
+    res.status(200).json([]);
   }
 }
