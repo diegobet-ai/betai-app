@@ -949,7 +949,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
 
   const probColor = prob>=65?"var(--green)":prob>=40?"var(--gold)":"var(--red)";
   const today = new Date().toLocaleDateString(isIt?"it-IT":"en-GB",{weekday:"long",day:"numeric",month:"long"});
-  const sportName = t.sports[sport];
+  // sportName now computed in generate() from sports Set
 
   const animateReasoning = (text) => {
     setTyping(true); let i=0;
