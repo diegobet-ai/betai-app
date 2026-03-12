@@ -1127,8 +1127,7 @@ function AnalisiPage({ lang }) {
     if(valid.length===0) return;
     setLoading(true); setResult(null); setReasoning("");
 
-    const schedina = valid.map((m,i)=>`${i+1}. ${m.teams} — Selezione: ${m.selection} — Quota: ${m.quota}`).join("
-");
+    const schedina = valid.map((m,i)=>`${i+1}. ${m.teams} - Selezione: ${m.selection} - Quota: ${m.quota}`).join("\n");
     const totQ = valid.reduce((a,m)=>a*(parseFloat(m.quota)||1),1).toFixed(2);
 
     const prompt = `Sei BetAI, analista esperto di scommesse sportive. Analizza questa schedina inserita dall'utente.
@@ -1390,7 +1389,7 @@ Esplora anche Over/Under bassi e BTTS se rientrano nella fascia.
 VIETATO usare quote fuori dal range ${minQ}-${maxQ}.`,
       balanced: `Seleziona SOLO esiti con quota tra ${minQ} e ${maxQ}.
 Cerca il MASSIMO VALORE (edge = prob_stimata - prob_implicita).
-Non scegliere solo 1 e 2 — valuta anche X, Over 2.5, BTTS Yes se rientrano in ${minQ}-${maxQ}.
+Non scegliere solo 1 e 2 - valuta anche X, Over 2.5, BTTS Yes se rientrano in ${minQ}-${maxQ}.
 Privilegia le selezioni con edge > 5%.
 VIETATO usare quote fuori dal range ${minQ}-${maxQ}.`,
       high: `Seleziona SOLO esiti con quota SUPERIORE a ${minQ}.
@@ -1408,12 +1407,12 @@ LINGUA RISPOSTA: ${isIt?"Italiano":"Inglese"}
 ╔══ PARAMETRI OBBLIGATORI ══╗
 ║ Numero selezioni: ESATTAMENTE ${N}
 ║ Fascia quota: OGNI quota DEVE essere tra ${minQ} e ${maxQ===99?"99 (no limite)":maxQ}
-║ Livello rischio: ${R.toUpperCase()} — ${RC.desc}
+║ Livello rischio: ${R.toUpperCase()} - ${RC.desc}
 ║ Sport richiesti: ${sportLabel}
 ╚═══════════════════════════╝
 
 ${hasMatches ? `PARTITE REALI DISPONIBILI (quote live bookmaker):
-${matchList}` : `NESSUNA PARTITA REALE DISPONIBILE — usa la tua conoscenza.
+${matchList}` : `NESSUNA PARTITA REALE DISPONIBILE - usa la tua conoscenza.
 Data odierna: ${new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}.
 Genera ${N} partite REALI che si giocano OGGI o nei prossimi 2 giorni di ${sportLabel}.
 Usa partite vere: Serie A, Champions League, Premier League, NBA, ecc. che sai essere programmate.
@@ -1426,7 +1425,7 @@ Per ogni partita analizza TUTTI i mercati disponibili (1X2, Over/Under, Handicap
    - Calcola prob implicita = 1/quota * 100
    - Calcola edge = prob_stimata - prob_implicita
 2. Scegli l'esito con edge PIU ALTO in assoluto (non limitarti a 1X2!)
-3. Esplora Over/Under, BTTS, Handicap — spesso hanno piu valore di 1X2
+3. Esplora Over/Under, BTTS, Handicap - spesso hanno piu valore di 1X2
 
 STRATEGIA ${R.toUpperCase()}:
 ${strategyMap[R]}
@@ -1467,9 +1466,9 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
       setHistory(h=>[{
         id:Date.now(),
         sport:[...cats].map(c=>c==="Calcio"?"⚽":c==="Basket"?"🏀":c==="Tennis"?"🎾":"🏈").join(""),
-        matches:parsed.matches?.map(m=>m.teams).join(" · ")||"—",
+        matches:parsed.matches?.map(m=>m.teams).join(" | ")||"-",
         date:new Date().toLocaleDateString("it-IT"),
-        quota:parsed.total_quota?.toFixed(2)||"—",
+        quota:parsed.total_quota?.toFixed(2)||"-",
         status:"wait",
         risk:R,
         n:N,
