@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET");
 
   const { sport } = req.query;
-  const API_KEY = "cf8b575dd9664b4917486edb7c515b39";
+  const API_KEY = "b4ae8c510b00a8c669c20073c01e92e5";
 
   try {
     const markets = "h2h,totals,spreads,btts";
