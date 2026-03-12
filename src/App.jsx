@@ -336,7 +336,7 @@ const T = {
     features:{label:"Funzionalità",title:"AI REALE, PARTITE REALI",cards:[{icon:"📡",t:"Partite di oggi in tempo reale",d:"BetAI carica automaticamente tutte le partite di oggi con le quote live dei bookmaker."},{icon:"🧠",t:"40+ Statistiche per partita",d:"Forma recente, scontri diretti, xG, infortuni, rendimento casa/trasferta."},{icon:"📊",t:"Edge vs Bookmaker",d:"L'AI confronta la propria stima con le quote reali e seleziona solo le partite con vantaggio positivo."},{icon:"🎚️",t:"Rischio su misura",d:"Imposti tu probabilità e quota obiettivo. L'AI seleziona le partite che si avvicinano di più."},{icon:"🔔",t:"Notifiche Push",d:"Ti avvisiamo quando la schedina è pronta o le quote cambiano significativamente."},{icon:"🏆",t:"Storico Performance",d:"Traccia ogni schedina, analizza le tue tendenze e migliora nel tempo."}]},
     pricing:{label:"Prezzi",title:"INIZIA GRATIS",plans:[{name:"Starter",price:"0",period:"per sempre",popular:false,features:["1 schedina/giorno","Solo livello Sicuro","Calcio e Basket","x AI dettagliata","x Notifiche push"],cta:"Inizia Gratis",style:"outline"},{name:"Pro",price:"9.99",period:"al mese",popular:true,features:["Schedine illimitate","Tutti i livelli","Tutti gli sport","AI + 40 statistiche","Notifiche push"],cta:"Inizia ora",style:"primary"},{name:"Elite",price:"24.99",period:"al mese",popular:false,features:["Tutto di Pro","Quote live","Gestione bankroll","Supporto prioritario","Early access"],cta:"Scegli Elite",style:"outline"}]},
     auth:{tabLogin:"Accedi",tabReg:"Registrati",email:"Email",pass:"Password",name:"Nome",btnLogin:"Accedi",btnReg:"Crea account",sw1:"Non hai un account?",sw2:"Hai già un account?",c1:"Registrati",c2:"Accedi"},
-    dash:{welcome:"Bentornato",stats:["Schedine","Vinte","Successo","Quota Media"],genTitle:"GENERA SCHEDINA",sport:"Sport",risk:"Livello Rischio",prob:"Probabilità vincita",quota:"Quota obiettivo",genBtn:"GENERA SCHEDINA AI",generating:"Analisi statistica in corso...",result:"Schedina Consigliata",aiLabel:"Analisi AI",histTitle:"Storico",histEmpty:"Nessuna schedina. Generane una!",sports:["Calcio","Basket","Tennis","Formula 1"],sportEmoji:["⚽","🏀","🎾","🏎️"],risks:[{id:"safe",emoji:"🟢",name:"Sicuro",sub:"Alta prob."},{id:"balanced",emoji:"🟡",name:"Bilanciato",sub:"Equilibrato"},{id:"high",emoji:"🔴",name:"High Risk",sub:"Alta quota"}],nav:["Dashboard","Schedine","Hall of Fame","Analisi","Impostazioni"],navEmoji:["🎯","📋","🏆","📊","⚙️"],logout:"Esci",premiumMsg:"High Risk disponibile con Pro",upgrade:"Upgrade",hallTitle:"HALL OF FAME",hallSub:"Le migliori schedine della community",todayTitle:"PARTITE DI OGGI",todayLive:"LIVE",todayEmpty:"Nessuna partita trovata per oggi.",todayLoading:"Caricamento partite...",todayFilter:"Filtra per campionato",todayCount:"partite trovate",todayRefresh:"Aggiorna",selMatch:"Usa questa partita"},
+    dash:{welcome:"Bentornato",stats:["Schedine","Vinte","Successo","Quota Media"],genTitle:"GENERA SCHEDINA",sport:"Sport",risk:"Livello Rischio",prob:"Probabilità vincita",quota:"Quota obiettivo",genBtn:"GENERA SCHEDINA AI",generating:"Analisi statistica in corso...",result:"Schedina Consigliata",aiLabel:"Analisi AI",histTitle:"Storico",histEmpty:"Nessuna schedina. Generane una!",sports:["Calcio","Basket","Tennis","Formula 1"],sportEmoji:["⚽","🏀","🎾","🏎️"],risks:[{id:"safe",emoji:"🟢",name:"Sicuro",sub:"Alta prob."},{id:"balanced",emoji:"🟡",name:"Bilanciato",sub:"Equilibrato"},{id:"high",emoji:"🔴",name:"High Risk",sub:"Alta quota"}],nav:["Dashboard","Schedine","Hall of Fame","Analisi Schedina","Profilo"],navEmoji:["🎯","📋","🏆","🔬","👤"],logout:"Esci",premiumMsg:"High Risk disponibile con Pro",upgrade:"Upgrade",hallTitle:"HALL OF FAME",hallSub:"Le migliori schedine della community",todayTitle:"PARTITE DI OGGI",todayLive:"LIVE",todayEmpty:"Nessuna partita trovata per oggi.",todayLoading:"Caricamento partite...",todayFilter:"Filtra per campionato",todayCount:"partite trovate",todayRefresh:"Aggiorna",selMatch:"Usa questa partita"},
     wins:{label:"Prove di Vincita",title:"RISULTATI REALI",sub:"Schedine reali dei nostri utenti.",tabs:["Schedine Vinte","Screenshots"],cLabels:["Schedine Vinte","Tasso Successo","Profitti Totali","Utenti Attivi"],won:"VINTA",stake:"Puntata"},
     footer:{disclaimer:"BetAI è uno strumento di analisi statistica a scopo informativo. Le scommesse comportano rischi. Vietato ai minori di 18 anni. Gioca responsabilmente.",cols:[{t:"Prodotto",links:["Come funziona","Funzionalità","Prezzi","API"]},{t:"Legale",links:["Privacy Policy","Termini","Cookie","GDPR"]},{t:"Supporto",links:["Centro Aiuto","Contattaci","Community"]}]},
   },
@@ -346,7 +346,7 @@ const T = {
     features:{label:"Features",title:"REAL AI, REAL MATCHES",cards:[{icon:"📡",t:"Today's matches live",d:"BetAI automatically loads all today's matches with live bookmaker odds."},{icon:"🧠",t:"40+ Stats per match",d:"Recent form, H2H, xG, injuries, home/away performance."},{icon:"📊",t:"Edge vs Bookmaker",d:"AI compares its estimate against real odds and picks only positive-edge matches."},{icon:"🎚️",t:"Custom risk",d:"You set probability and target odds. AI picks the closest matches."},{icon:"🔔",t:"Push notifications",d:"Get notified when your bet is ready or odds change significantly."},{icon:"🏆",t:"History & Performance",d:"Track every bet, analyze trends and improve over time."}]},
     pricing:{label:"Pricing",title:"START FREE",plans:[{name:"Starter",price:"0",period:"forever",popular:false,features:["1 bet/day","Safe level only","Football & Basketball","x Detailed AI","x Push notifications"],cta:"Start Free",style:"outline"},{name:"Pro",price:"9.99",period:"per month",popular:true,features:["Unlimited bets","All risk levels","All sports","AI + 40 stats","Push notifications"],cta:"Start now",style:"primary"},{name:"Elite",price:"24.99",period:"per month",popular:false,features:["Everything in Pro","Live odds","Bankroll manager","Priority support","Early access"],cta:"Choose Elite",style:"outline"}]},
     auth:{tabLogin:"Log in",tabReg:"Register",email:"Email",pass:"Password",name:"Name",btnLogin:"Log in",btnReg:"Create account",sw1:"Don't have an account?",sw2:"Already have an account?",c1:"Sign up",c2:"Log in"},
-    dash:{welcome:"Welcome back",stats:["Bets","Won","Success","Avg Odds"],genTitle:"GENERATE BET",sport:"Sport",risk:"Risk Level",prob:"Win probability",quota:"Target odds",genBtn:"GENERATE AI BET",generating:"Running statistical analysis...",result:"Recommended Bet",aiLabel:"AI Analysis",histTitle:"History",histEmpty:"No bets yet. Generate one!",sports:["Football","Basketball","Tennis","Formula 1"],sportEmoji:["⚽","🏀","🎾","🏎️"],risks:[{id:"safe",emoji:"🟢",name:"Safe",sub:"High prob."},{id:"balanced",emoji:"🟡",name:"Balanced",sub:"Best of both"},{id:"high",emoji:"🔴",name:"High Risk",sub:"Big odds"}],nav:["Dashboard","My Bets","Hall of Fame","Analysis","Settings"],navEmoji:["🎯","📋","🏆","📊","⚙️"],logout:"Log out",premiumMsg:"High Risk available on Pro",upgrade:"Upgrade",hallTitle:"HALL OF FAME",hallSub:"Best bets from the community",todayTitle:"TODAY'S MATCHES",todayLive:"LIVE",todayEmpty:"No matches found for today.",todayLoading:"Loading matches...",todayFilter:"Filter by league",todayCount:"matches found",todayRefresh:"Refresh",selMatch:"Use this match"},
+    dash:{welcome:"Welcome back",stats:["Bets","Won","Success","Avg Odds"],genTitle:"GENERATE BET",sport:"Sport",risk:"Risk Level",prob:"Win probability",quota:"Target odds",genBtn:"GENERATE AI BET",generating:"Running statistical analysis...",result:"Recommended Bet",aiLabel:"AI Analysis",histTitle:"History",histEmpty:"No bets yet. Generate one!",sports:["Football","Basketball","Tennis","Formula 1"],sportEmoji:["⚽","🏀","🎾","🏎️"],risks:[{id:"safe",emoji:"🟢",name:"Safe",sub:"High prob."},{id:"balanced",emoji:"🟡",name:"Balanced",sub:"Best of both"},{id:"high",emoji:"🔴",name:"High Risk",sub:"Big odds"}],nav:["Dashboard","My Bets","Hall of Fame","Bet Analysis","Profile"],navEmoji:["🎯","📋","🏆","🔬","👤"],logout:"Log out",premiumMsg:"High Risk available on Pro",upgrade:"Upgrade",hallTitle:"HALL OF FAME",hallSub:"Best bets from the community",todayTitle:"TODAY'S MATCHES",todayLive:"LIVE",todayEmpty:"No matches found for today.",todayLoading:"Loading matches...",todayFilter:"Filter by league",todayCount:"matches found",todayRefresh:"Refresh",selMatch:"Use this match"},
     wins:{label:"Winning Proof",title:"REAL RESULTS",sub:"Real bets from our users.",tabs:["Winning Bets","Screenshots"],cLabels:["Bets Won","Success Rate","Total Profits","Active Users"],won:"WON",stake:"Stake"},
     footer:{disclaimer:"BetAI is a statistical analysis tool for informational purposes only. Gambling involves financial risk. Must be 18+. Please gamble responsibly.",cols:[{t:"Product",links:["How it works","Features","Pricing","API"]},{t:"Legal",links:["Privacy Policy","Terms","Cookies","GDPR"]},{t:"Support",links:["Help Center","Contact Us","Community"]}]},
   }
@@ -544,18 +544,15 @@ function TodayMatches({ lang, onMatchesLoaded }) {
       });
 
       allMatches.sort((a,b) => a.timestamp - b.timestamp);
-      // Mostra partite dei prossimi 7 giorni (non solo oggi)
+      // Filtra: oggi + domani
       const now = new Date();
-      const weekAhead = new Date(now.getTime() + 7*24*60*60*1000);
-      const upcoming = allMatches.filter(m => m.timestamp >= now && m.timestamp <= weekAhead);
-      const toShow = upcoming.length > 0 ? upcoming : allMatches;
+      const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+      const tomorrowEnd = new Date(now); tomorrowEnd.setHours(47,59,59,999);
+      const todayTomorrow = allMatches.filter(m => m.timestamp >= todayStart && m.timestamp <= tomorrowEnd);
+      const toShow = todayTomorrow.length > 0 ? todayTomorrow : allMatches.slice(0,30);
       setMatches(toShow);
       if (onMatchesLoaded) onMatchesLoaded(toShow);
-      console.log("BetAI: totale partite API:", allMatches.length, "| prossimi 7gg:", upcoming.length, "| mostrate:", toShow.length);
-      if(allMatches.length > 0) {
-        console.log("Prima partita:", allMatches[0].teams, allMatches[0].timestamp.toISOString());
-        console.log("Ultima partita:", allMatches[allMatches.length-1].teams, allMatches[allMatches.length-1].timestamp.toISOString());
-      }
+      console.log("BetAI partite oggi+domani:", todayTomorrow.length, "| totale API:", allMatches.length);
     } catch(e) {
       console.error("BetAI fetch error:", e);
       setError(lang==="it"?"Errore nel caricamento: "+e.message:"Error loading: "+e.message);
@@ -974,6 +971,328 @@ function DashWins({ lang }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// PROFILE PAGE
+// ═══════════════════════════════════════════════════════════
+function ProfilePage({ user, lang }) {
+  const isIt = lang==="it";
+  const [saved, setSaved] = useState(false);
+  const [prefs, setPrefs] = useState({
+    defaultRisk: "balanced",
+    defaultSports: ["Calcio","Basket"],
+    defaultMatches: 3,
+    emailAlerts: true,
+    pushNotifications: false,
+    language: lang,
+    currency: "EUR",
+    timezone: "Europe/Rome",
+  });
+
+  const save = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
+
+  return (
+    <div style={{maxWidth:700}}>
+      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:28,padding:24,background:"var(--card)",borderRadius:18,border:"1px solid var(--border)"}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#05080f"}}>
+          {(user.name||"U")[0].toUpperCase()}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:20,fontWeight:700,color:"white"}}>{user.name}</div>
+          <div style={{fontSize:13,color:"var(--muted2)",marginTop:2}}>{user.email}</div>
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <span style={{fontSize:11,fontWeight:700,color:"var(--gold)",background:"rgba(255,200,0,0.1)",border:"1px solid rgba(255,200,0,0.2)",padding:"2px 10px",borderRadius:20}}>⭐ Pro</span>
+            <span style={{fontSize:11,color:"var(--muted2)",fontFamily:"var(--mono)"}}>Member since Mar 2026</span>
+          </div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:24,fontWeight:900,color:"var(--cyan)",fontFamily:"var(--display)"}}>24</div>
+          <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:1}}>{isIt?"SCHEDINE":"BETS"}</div>
+        </div>
+      </div>
+
+      {/* Preferenze */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:20}}>⚙️ {isIt?"Preferenze Default":"Default Preferences"}</div>
+        
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Rischio default":"Default risk"}</div>
+          <div style={{display:"flex",gap:8}}>
+            {["safe","balanced","high"].map(r=>(
+              <button key={r} onClick={()=>setPrefs(p=>({...p,defaultRisk:r}))}
+                style={{flex:1,padding:"8px 4px",borderRadius:10,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s",
+                  background:prefs.defaultRisk===r?"rgba(0,212,255,0.1)":"var(--card2)",
+                  borderColor:prefs.defaultRisk===r?"var(--cyan)":"var(--border)",
+                  color:prefs.defaultRisk===r?"var(--cyan)":"var(--muted2)"}}>
+                {r==="safe"?"🟢 Safe":r==="balanced"?"🟡 Balanced":"🔴 High"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Partite default":"Default matches"}</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[1,2,3,5,8,10].map(n=>(
+              <button key={n} onClick={()=>setPrefs(p=>({...p,defaultMatches:n}))}
+                style={{padding:"6px 14px",borderRadius:8,border:"1px solid",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:prefs.defaultMatches===n?"rgba(0,212,255,0.1)":"var(--card2)",
+                  borderColor:prefs.defaultMatches===n?"var(--cyan)":"var(--border)",
+                  color:prefs.defaultMatches===n?"var(--cyan)":"var(--muted2)"}}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Notifiche email":"Email notifications"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div onClick={()=>setPrefs(p=>({...p,emailAlerts:!p.emailAlerts}))}
+              style={{width:44,height:24,borderRadius:12,background:prefs.emailAlerts?"var(--cyan)":"var(--card2)",border:"1px solid var(--border2)",cursor:"pointer",position:"relative",transition:"all 0.3s"}}>
+              <div style={{position:"absolute",top:3,left:prefs.emailAlerts?22:3,width:16,height:16,borderRadius:"50%",background:"white",transition:"all 0.3s"}}/>
+            </div>
+            <span style={{fontSize:12,color:"var(--muted2)"}}>{prefs.emailAlerts?(isIt?"Attive":"Active"):(isIt?"Disattive":"Disabled")}</span>
+          </div>
+        </div>
+
+        <button onClick={save} style={{width:"100%",padding:"12px",borderRadius:12,background:saved?"var(--green)":"var(--cyan)",color:"#05080f",border:"none",fontWeight:700,fontSize:13,cursor:"pointer",transition:"all 0.3s"}}>
+          {saved?(isIt?"✓ Salvato!":"✓ Saved!"):(isIt?"Salva Preferenze":"Save Preferences")}
+        </button>
+      </div>
+
+      {/* Statistiche */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:20}}>📊 {isIt?"Le tue statistiche":"Your Statistics"}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+          {[
+            {v:"24",l:isIt?"Schedine totali":"Total bets",c:"var(--cyan)"},
+            {v:"16",l:isIt?"Vinte":"Won",c:"var(--green)"},
+            {v:"67%",l:isIt?"Successo":"Win rate",c:"var(--gold)"},
+            {v:"6.8x",l:isIt?"Quota media":"Avg odds",c:"var(--purple)"},
+            {v:"€420",l:isIt?"Profitto stimato":"Est. profit",c:"var(--green)"},
+            {v:"8",l:isIt?"Serie attuale":"Current streak",c:"var(--cyan)"},
+          ].map((s,i)=>(
+            <div key={i} style={{background:"var(--card2)",borderRadius:12,padding:"14px 12px",textAlign:"center",border:"1px solid var(--border)"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:22,color:s.c,marginBottom:4}}>{s.v}</div>
+              <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:0.5}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Email automatiche info */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:12}}>📧 {isIt?"Email automatiche":"Automatic emails"}</div>
+        <div style={{fontSize:12,color:"var(--muted2)",lineHeight:1.7,marginBottom:16}}>
+          {isIt
+            ?"BetAI ti invia email automatiche in questi casi:"
+            :"BetAI sends you automatic emails in these cases:"}
+        </div>
+        {[
+          {icon:"🔔",t:isIt?"Schedina pronta":"Bet ready",d:isIt?"Quando una nuova schedina AI è disponibile":"When a new AI bet is available"},
+          {icon:"😴",t:isIt?"Sei inattivo da 7 giorni":"Inactive for 7 days",d:isIt?"Ti ricordiamo che ci sei perso! Torna a giocare 😄":"We remind you we miss you! Come back and play 😄"},
+          {icon:"📈",t:isIt?"Quote cambiate":"Odds changed",d:isIt?"Quando le quote di una tua schedina cambiano significativamente":"When odds on your bet change significantly"},
+          {icon:"🏆",t:isIt?"Risultato schedina":"Bet result",d:isIt?"Quando le partite della tua schedina terminano":"When matches in your bet are finished"},
+        ].map((item,i)=>(
+          <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<3?"1px solid var(--border)":"none"}}>
+            <span style={{fontSize:18}}>{item.icon}</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{item.t}</div>
+              <div style={{fontSize:11,color:"var(--muted2)",marginTop:2}}>{item.d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANALISI SCHEDINA PAGE
+// ═══════════════════════════════════════════════════════════
+function AnalisiPage({ lang }) {
+  const isIt = lang==="it";
+  const [matches, setMatches] = useState([{id:1,teams:"",selection:"",quota:""}]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [reasoning, setReasoning] = useState("");
+  const [typing, setTyping] = useState(false);
+
+  const addMatch = () => setMatches(m=>[...m,{id:Date.now(),teams:"",selection:"",quota:""}]);
+  const removeMatch = (id) => setMatches(m=>m.filter(x=>x.id!==id));
+  const updateMatch = (id,field,val) => setMatches(m=>m.map(x=>x.id===id?{...x,[field]:val}:x));
+
+  const analyze = async () => {
+    const valid = matches.filter(m=>m.teams.trim()&&m.selection.trim()&&m.quota);
+    if(valid.length===0) return;
+    setLoading(true); setResult(null); setReasoning("");
+
+    const schedina = valid.map((m,i)=>`${i+1}. ${m.teams} — Selezione: ${m.selection} — Quota: ${m.quota}`).join("
+");
+    const totQ = valid.reduce((a,m)=>a*(parseFloat(m.quota)||1),1).toFixed(2);
+
+    const prompt = `Sei BetAI, analista esperto di scommesse sportive. Analizza questa schedina inserita dall'utente.
+
+SCHEDINA:
+${schedina}
+QUOTA TOTALE: ${totQ}x
+
+Per OGNI selezione:
+1. Analizza la partita/evento con la tua conoscenza (forma recente, H2H, statistiche)
+2. Stima la probabilità reale di vittoria per quella selezione (%)
+3. Confronta con la probabilità implicita del bookmaker (1/quota*100)
+4. Calcola edge = prob_stimata - prob_implicita
+5. Dai un giudizio: OTTIMA SCELTA / BUONA / NELLA MEDIA / RISCHIOSA / SCONSIGLIATA
+
+Alla fine:
+- Probabilità combinata stimata della schedina intera
+- Giudizio complessivo
+- Suggerimenti per migliorarla
+
+Rispondi SOLO in JSON valido:
+{"selections":[{"teams":"nome partita","selection":"esito","quota":1.85,"implied_prob":54,"estimated_prob":61,"edge":"+7%","verdict":"OTTIMA SCELTA","verdict_color":"green","reason":"spiegazione breve"}],"combined_prob":18,"total_quota":${totQ},"overall_verdict":"SCHEDINA SOLIDA","overall_color":"gold","tips":["consiglio 1","consiglio 2","consiglio 3"],"reasoning":"analisi dettagliata in ${isIt?"italiano":"english"} — min 5 frasi"}`;
+
+    try {
+      const res = await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+      const data = await res.json();
+      const raw = data.content?.map(b=>b.text||"").join("")||"";
+      const clean = raw.replace(/```json/g,"").replace(/```/g,"").trim();
+      const parsed = JSON.parse(clean);
+      setResult(parsed);
+      // animate reasoning
+      setTyping(true); let i=0;
+      const txt = parsed.reasoning||"";
+      const iv = setInterval(()=>{setReasoning(txt.slice(0,i));i+=6;if(i>txt.length){setReasoning(txt);setTyping(false);clearInterval(iv);}},18);
+    } catch(e) {
+      setResult({error:true,message:e.message});
+    } finally { setLoading(false); }
+  };
+
+  const verdictStyle = (color) => ({
+    padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,
+    background:color==="green"?"rgba(0,224,144,0.1)":color==="gold"?"rgba(255,200,0,0.1)":color==="red"?"rgba(255,80,80,0.1)":"rgba(0,212,255,0.1)",
+    color:color==="green"?"var(--green)":color==="gold"?"var(--gold)":color==="red"?"var(--red)":"var(--cyan)",
+    border:`1px solid ${color==="green"?"rgba(0,224,144,0.3)":color==="gold"?"rgba(255,200,0,0.3)":color==="red"?"rgba(255,80,80,0.3)":"rgba(0,212,255,0.3)"}`,
+  });
+
+  return (
+    <div style={{maxWidth:760}}>
+      <div style={{marginBottom:24,padding:20,background:"linear-gradient(135deg,rgba(0,212,255,0.08),rgba(139,92,246,0.08))",borderRadius:18,border:"1px solid var(--border)"}}>
+        <div style={{fontSize:13,color:"var(--cyan)",fontFamily:"var(--mono)",marginBottom:4}}>🔬 ANALISI SCHEDINA</div>
+        <div style={{fontSize:20,fontWeight:700,color:"white",marginBottom:6}}>
+          {isIt?"Analizza la tua schedina":"Analyze your bet slip"}
+        </div>
+        <div style={{fontSize:12,color:"var(--muted2)"}}>
+          {isIt?"Inserisci le partite che vuoi giocare e l'AI ti dice la probabilità reale di vincita e il valore di ogni selezione."
+               :"Enter the matches you want to bet on and AI tells you the real win probability and value of each selection."}
+        </div>
+      </div>
+
+      {/* Match inputs */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:14,fontWeight:700,color:"white",marginBottom:18}}>
+          📋 {isIt?"Le tue selezioni":"Your selections"}
+        </div>
+        {matches.map((m,i)=>(
+          <div key={m.id} style={{marginBottom:14,padding:16,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{fontSize:12,fontWeight:700,color:"var(--cyan)",fontFamily:"var(--mono)"}}>#{i+1}</span>
+              {matches.length>1&&<button onClick={()=>removeMatch(m.id)} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontSize:16}}>✕</button>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 80px",gap:8}}>
+              <input value={m.teams} onChange={e=>updateMatch(m.id,"teams",e.target.value)}
+                placeholder={isIt?"Squadra A vs Squadra B":"Team A vs Team B"}
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+              <input value={m.selection} onChange={e=>updateMatch(m.id,"selection",e.target.value)}
+                placeholder={isIt?"Es: 1, X, Over 2.5":"E.g: 1, X, Over 2.5"}
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+              <input value={m.quota} onChange={e=>updateMatch(m.id,"quota",e.target.value)}
+                placeholder="Quota" type="number" step="0.01" min="1"
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+            </div>
+          </div>
+        ))}
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <button onClick={addMatch} style={{flex:1,padding:"10px",borderRadius:10,background:"var(--card2)",border:"1px dashed var(--border2)",color:"var(--muted2)",cursor:"pointer",fontSize:12,fontWeight:600}}>
+            + {isIt?"Aggiungi selezione":"Add selection"}
+          </button>
+          <button onClick={analyze} disabled={loading}
+            style={{flex:2,padding:"10px",borderRadius:10,background:"var(--cyan)",color:"#05080f",border:"none",cursor:"pointer",fontSize:13,fontWeight:700}}>
+            {loading?(isIt?"Analisi in corso...":"Analyzing..."):(isIt?"🔬 Analizza con AI":"🔬 Analyze with AI")}
+          </button>
+        </div>
+      </div>
+
+      {/* Results */}
+      {result&&!result.error&&(
+        <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24}}>
+          {/* Overall verdict */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,padding:16,background:"var(--card2)",borderRadius:12}}>
+            <div>
+              <div style={{fontSize:12,color:"var(--muted2)",marginBottom:4}}>{isIt?"Giudizio complessivo":"Overall verdict"}</div>
+              <span style={verdictStyle(result.overall_color)}>{result.overall_verdict}</span>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--green)"}}>{result.combined_prob?.toFixed(0)}%</div>
+              <div style={{fontSize:10,color:"var(--muted2)"}}>{isIt?"prob. vincita":"win prob."}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--gold)"}}>{result.total_quota}x</div>
+              <div style={{fontSize:10,color:"var(--muted2)"}}>{isIt?"quota totale":"total odds"}</div>
+            </div>
+          </div>
+
+          {/* Each selection */}
+          {result.selections?.map((s,i)=>(
+            <div key={i} style={{marginBottom:12,padding:14,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"white"}}>{s.teams}</div>
+                  <div style={{fontSize:11,color:"var(--muted2)",marginTop:2}}>{s.selection} · quota {s.quota}</div>
+                </div>
+                <span style={verdictStyle(s.verdict_color)}>{s.verdict}</span>
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:8}}>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--muted2)"}}>Impl. {s.implied_prob}%</span>
+                <span style={{fontSize:11,color:"var(--muted2)"}}>→</span>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--cyan)"}}>Reale ~{s.estimated_prob}%</span>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:s.edge?.startsWith("+")||s.edge>0?"var(--green)":"var(--red)"}}>Edge {s.edge}</span>
+              </div>
+              <div style={{fontSize:11,color:"var(--muted2)",lineHeight:1.5}}>{s.reason}</div>
+            </div>
+          ))}
+
+          {/* Tips */}
+          {result.tips?.length>0&&(
+            <div style={{marginTop:16,padding:14,background:"rgba(0,212,255,0.05)",borderRadius:12,border:"1px solid rgba(0,212,255,0.15)"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--cyan)",marginBottom:10}}>💡 {isIt?"Suggerimenti AI":"AI Tips"}</div>
+              {result.tips.map((tip,i)=>(
+                <div key={i} style={{fontSize:12,color:"var(--muted2)",marginBottom:6,paddingLeft:12,borderLeft:"2px solid var(--cyan)"}}>
+                  {tip}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Reasoning */}
+          <div style={{marginTop:16,padding:14,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--cyan)",marginBottom:8,fontFamily:"var(--mono)"}}>🧠 ANALISI DETTAGLIATA</div>
+            <div style={{fontSize:12,color:"var(--muted2)",lineHeight:1.7}}>{reasoning}{typing&&<span style={{animation:"blink 1s infinite"}}>|</span>}</div>
+          </div>
+        </div>
+      )}
+
+      {result?.error&&(
+        <div style={{padding:20,background:"rgba(255,80,80,0.08)",borderRadius:12,border:"1px solid rgba(255,80,80,0.2)",color:"var(--red)",fontSize:12}}>
+          ⚠️ Errore: {result.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function Dashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang].dash;
   const isIt = lang==="it";
@@ -1060,6 +1379,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
     }).join("\n");
 
     const hasMatches = filtered.length > 0;
+    const totalLoaded = todayMatches.length;
 
     const strategyMap = {
       safe: `Seleziona SOLO esiti con quota tra ${minQ} e ${maxQ}.
@@ -1093,8 +1413,11 @@ LINGUA RISPOSTA: ${isIt?"Italiano":"Inglese"}
 ╚═══════════════════════════╝
 
 ${hasMatches ? `PARTITE REALI DISPONIBILI (quote live bookmaker):
-${matchList}` : `Nessuna partita reale disponibile.
-Inventa ${N} partite verosimili di ${sportLabel} con quote nella fascia ${minQ}-${maxQ===99?20:maxQ}.`}
+${matchList}` : `NESSUNA PARTITA REALE DISPONIBILE — usa la tua conoscenza.
+Data odierna: ${new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}.
+Genera ${N} partite REALI che si giocano OGGI o nei prossimi 2 giorni di ${sportLabel}.
+Usa partite vere: Serie A, Champions League, Premier League, NBA, ecc. che sai essere programmate.
+Inventa quote realistiche nella fascia ${minQ}-${maxQ===99?20:maxQ} basandoti sulle forze reali delle squadre.`}
 
 ANALISI DA FARE PER OGNI PARTITA:
 Per ogni partita analizza TUTTI i mercati disponibili (1X2, Over/Under, Handicap, BTTS, ecc.):
@@ -1177,7 +1500,7 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
     } finally { setLoading(false); }
   };
 
-  const titles = {0:"DASHBOARD",1:isIt?"SCHEDINE":"MY BETS",2:"HALL OF FAME",3:isIt?"ANALISI":"ANALYSIS",4:isIt?"IMPOSTAZIONI":"SETTINGS"};
+  const titles = {0:"DASHBOARD",1:isIt?"SCHEDINE":"MY BETS",2:"HALL OF FAME",3:isIt?"ANALISI SCHEDINA":"BET ANALYSIS",4:isIt?"PROFILO":"PROFILE"};
 
   return (
     <div className="dash-layout">
@@ -1231,8 +1554,10 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
         </div>
 
         {activeNav===2 && <DashWins lang={lang}/>}
+        {activeNav===3 && <AnalisiPage lang={lang}/>}
+        {activeNav===4 && <ProfilePage user={user} lang={lang}/>}
 
-        {activeNav!==2 && (<>
+        {activeNav!==2 && activeNav!==3 && activeNav!==4 && (<>
           {/* Stats bar */}
           <div className="stats-bar">
             {[{v:"24",l:t.stats[0],tr:"+3",up:true},{v:"16",l:t.stats[1],tr:"+1",up:true},{v:"67%",l:t.stats[2],tr:"+2%",up:true},{v:"6.8x",l:t.stats[3],tr:"-0.4",up:false}].map((s,i)=>(
