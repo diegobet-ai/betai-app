@@ -1311,7 +1311,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [todayMatches, setTodayMatches] = useState([]);
 
   // All available sport categories from loaded matches
-  const availableCats = [...new Set(todayMatches.map(m => m.cat))];
+  const availableCats = [...new Set(todayMatches.map(m => m.cat))].filter(Boolean);
 
   const RISK_CONFIG = {
     safe:     { minQ:1.05, maxQ:1.60, label:"SAFE 1.05–1.60",     color:"var(--green)", desc:"Quote basse, favoriti sicuri" },
@@ -1351,11 +1351,13 @@ function Dashboard({ user, onLogout, lang, setLang }) {
 
     // Filter matches by selected sports
     const filtered = todayMatches.filter(m => cats.has(m.cat));
-    const sportLabel = [...cats].join(", ");
+    // Se nessuna partita trovata per gli sport selezionati, usa tutte le partite disponibili
+    const finalFiltered = filtered.length > 0 ? filtered : todayMatches;
+    const sportLabel = filtered.length > 0 ? [...cats].join(", ") : "Tutti gli sport disponibili";
 
     // Shuffle for variety
     const seed = Math.random().toString(36).slice(2,8).toUpperCase();
-    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+    const shuffled = [...finalFiltered].sort(() => Math.random() - 0.5);
 
     // Build match list with ALL markets
     const matchList = shuffled.slice(0,25).map((m,idx) => {
@@ -1377,7 +1379,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
       return line;
     }).join("\n");
 
-    const hasMatches = filtered.length > 0;
+    const hasMatches = finalFiltered.length > 0;
     const totalLoaded = todayMatches.length;
 
     const strategyMap = {
@@ -1475,22 +1477,23 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
       },...h.slice(0,9)]);
     } catch(err) {
       // Fallback: use real matches with correct odds range
-      const fallbackMatches = shuffled
-        .filter(m => {
-          const q = R==="safe" ? (m.home_odds||99) : R==="balanced" ? (m.home_odds||0) : (m.away_odds||0);
-          return R==="safe" ? q<=1.60 && q>=1.05 : R==="balanced" ? q>=1.61&&q<=2.00 : q>=2.01;
-        })
+      // Fallback con partite reali disponibili
+      const allAvailable = [...finalFiltered].sort(() => Math.random() - 0.5);
+      const fallbackMatches = allAvailable
         .slice(0, N)
-        .map(m => ({
-          teams: m.teams, league: m.league, time: m.time,
-          selection: R==="safe"?"1 (favorito)":R==="balanced"?"1":m.away_odds>2?"2":"Over 2.5",
-          single_prob: m.home_odds ? Math.round(100/m.home_odds) : 60,
-          quota: R==="safe"?(m.home_odds||1.40):R==="balanced"?(m.home_odds||1.75):(m.away_odds||2.50),
-          ai_edge:"+5%",
-          stat_chips:["Quota live ✓","Analisi base","Edge stimato +5%"]
-        }));
-      const fb = fallbackMatches.length >= N ? fallbackMatches.slice(0,N) : [
-        {teams:"Esempio A vs B",league:"Serie A",time:"20:45",selection:"1",single_prob:65,quota:R==="safe"?1.40:R==="balanced"?1.75:2.50,ai_edge:"+5%",stat_chips:["Esempio"]},
+        .map(m => {
+          const useOdds = R==="safe" ? (m.home_odds||1.40) : R==="balanced" ? (m.home_odds||1.75) : (m.away_odds||2.50);
+          return {
+            teams: m.teams, league: m.league, time: m.time,
+            selection: R==="safe"?"1":R==="balanced"?"1":"2",
+            single_prob: m.home_odds ? Math.round(100/m.home_odds) : 55,
+            quota: useOdds,
+            ai_edge:"+5%",
+            stat_chips:["Quota live ✓","Analisi base","Edge +5%"]
+          };
+        });
+      const fb = fallbackMatches.length > 0 ? fallbackMatches : [
+        {teams:"Partita non disponibile",league:"—",time:"—",selection:"1",single_prob:60,quota:1.50,ai_edge:"+5%",stat_chips:["Dati limitati"]},
       ];
       const tq = fb.reduce((a,m)=>a*(m.quota||1.5),1);
       const ep = fb.reduce((a,m)=>a*(m.single_prob/100),1)*100;
