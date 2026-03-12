@@ -460,7 +460,6 @@ function TodayMatches({ lang, onMatchesLoaded }) {
     setLoading(true); setError(null);
     try {
       const allMatches = [];
-      // Use Vercel proxy to avoid CORS issues
       const fetches = SPORT_KEYS.map(sportKey =>
         fetch(`/api/odds?sport=${sportKey}`)
           .then(r => r.ok ? r.json() : [])
@@ -472,39 +471,78 @@ function TodayMatches({ lang, onMatchesLoaded }) {
         const sportKey = SPORT_KEYS[i];
         const label = SPORT_LABELS[sportKey];
         data.forEach(event => {
-          // Extract best odds
+          // Extract ALL markets from best bookmaker
           let home_odds = null, away_odds = null, draw_odds = null;
+          const allMarkets = []; // [{name, outcomes:[{label,price}]}]
+
           if (event.bookmakers && event.bookmakers.length > 0) {
-            const bk = event.bookmakers[0];
-            const market = bk.markets?.find(m => m.key === "h2h");
-            if (market) {
-              market.outcomes.forEach(o => {
-                if (o.name === event.home_team) home_odds = o.price;
-                else if (o.name === event.away_team) away_odds = o.price;
-                else draw_odds = o.price;
-              });
-            }
+            // Pick bookmaker with most markets
+            const bk = event.bookmakers.reduce((best,b) =>
+              (b.markets?.length||0) > (best.markets?.length||0) ? b : best
+            , event.bookmakers[0]);
+
+            bk.markets?.forEach(market => {
+              const outcomes = market.outcomes?.map(o => ({
+                label: o.name, price: o.price, point: o.point
+              })) || [];
+
+              // Store 1X2
+              if (market.key === "h2h") {
+                outcomes.forEach(o => {
+                  if(o.label === event.home_team) home_odds = o.price;
+                  else if(o.label === event.away_team) away_odds = o.price;
+                  else draw_odds = o.price;
+                });
+                allMarkets.push({name:"1X2", outcomes:[
+                  {label:"1 ("+event.home_team+")", price:home_odds},
+                  draw_odds?{label:"X (Pareggio)", price:draw_odds}:null,
+                  {label:"2 ("+event.away_team+")", price:away_odds},
+                ].filter(Boolean)});
+              }
+              // Over/Under
+              else if (market.key === "totals") {
+                const grouped = {};
+                outcomes.forEach(o => {
+                  const k = o.point||"2.5";
+                  if(!grouped[k]) grouped[k] = {};
+                  if(o.label==="Over") grouped[k].over = o.price;
+                  if(o.label==="Under") grouped[k].under = o.price;
+                });
+                Object.entries(grouped).forEach(([pt,v]) => {
+                  if(v.over) allMarkets.push({name:`Over ${pt}`, outcomes:[{label:`Over ${pt}`, price:v.over}]});
+                  if(v.under) allMarkets.push({name:`Under ${pt}`, outcomes:[{label:`Under ${pt}`, price:v.under}]});
+                });
+              }
+              // Spreads/Handicap
+              else if (market.key === "spreads") {
+                outcomes.forEach(o => {
+                  const sign = o.point>0?"+":"";
+                  allMarkets.push({name:`Handicap ${o.label}`, outcomes:[{label:`${o.label} ${sign}${o.point}`, price:o.price}]});
+                });
+              }
+              // BTTS / Both teams score
+              else if (market.key === "btts" || market.key === "both_teams_score") {
+                outcomes.forEach(o => {
+                  allMarkets.push({name:"BTTS "+o.label, outcomes:[{label:"BTTS "+o.label, price:o.price}]});
+                });
+              }
+            });
           }
+
           const matchTime = new Date(event.commence_time);
           allMatches.push({
-            id: event.id,
-            sportKey,
-            league: label.name,
-            cat: label.cat,
-            emoji: label.emoji,
-            home: event.home_team,
-            away: event.away_team,
+            id: event.id, sportKey,
+            league: label.name, cat: label.cat, emoji: label.emoji,
+            home: event.home_team, away: event.away_team,
             teams: `${event.home_team} vs ${event.away_team}`,
             time: matchTime.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),
             timestamp: matchTime,
-            home_odds,
-            away_odds,
-            draw_odds,
+            home_odds, away_odds, draw_odds,
+            allMarkets,
           });
         });
       });
 
-      // Sort by time
       allMatches.sort((a,b) => a.timestamp - b.timestamp);
       setMatches(allMatches);
       if (onMatchesLoaded) onMatchesLoaded(allMatches);
@@ -990,12 +1028,24 @@ function Dashboard({ user, onLogout, lang, setLang }) {
     const seed = Math.random().toString(36).slice(2,8).toUpperCase();
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
 
-    // Build match list with implied probs
+    // Build match list with ALL markets
     const matchList = shuffled.slice(0,25).map((m,idx) => {
+      // Base 1X2
       const i1 = m.home_odds ? (100/m.home_odds).toFixed(1)+"%" : "N/A";
       const ix = m.draw_odds ? (100/m.draw_odds).toFixed(1)+"%" : "-";
       const i2 = m.away_odds ? (100/m.away_odds).toFixed(1)+"%" : "N/A";
-      return `${idx+1}. [${m.cat}] ${m.teams} | ${m.league} | ${m.time}\n   1=${m.home_odds||"?"} (${i1})  X=${m.draw_odds||"-"} (${ix})  2=${m.away_odds||"?"} (${i2})`;
+      let line = `${idx+1}. [${m.cat}] ${m.teams} | ${m.league} | ${m.time}\n`;
+      line += `   1X2: 1=${m.home_odds||"?"} (impl.${i1})  X=${m.draw_odds||"-"} (impl.${ix})  2=${m.away_odds||"?"} (impl.${i2})`;
+      // Extra markets
+      if(m.allMarkets && m.allMarkets.length > 1) {
+        const extras = m.allMarkets
+          .filter(mk => mk.name !== "1X2")
+          .slice(0,8)
+          .map(mk => mk.outcomes.map(o => `${o.label}=${o.price} (impl.${(100/o.price).toFixed(1)}%)`).join("  "))
+          .join("  |  ");
+        if(extras) line += `\n   ALTRI MERCATI: ${extras}`;
+      }
+      return line;
     }).join("\n");
 
     const hasMatches = filtered.length > 0;
@@ -1036,10 +1086,13 @@ ${matchList}` : `Nessuna partita reale disponibile.
 Inventa ${N} partite verosimili di ${sportLabel} con quote nella fascia ${minQ}-${maxQ===99?20:maxQ}.`}
 
 ANALISI DA FARE PER OGNI PARTITA:
-1. Stima prob reale usando: forma recente, H2H, casa/trasferta, infortuni, importanza gara
-2. Calcola prob implicita = 1/quota * 100
-3. Calcola edge = prob_stimata - prob_implicita
-4. Scegli l'esito con edge migliore NELLA FASCIA ${minQ}-${maxQ===99?"99":maxQ}
+Per ogni partita analizza TUTTI i mercati disponibili (1X2, Over/Under, Handicap, BTTS, ecc.):
+1. Per ogni singolo esito/quota disponibile nella fascia ${minQ}-${maxQ===99?"99":maxQ}:
+   - Stima prob reale: forma recente, H2H, casa/trasferta, infortuni, contesto partita
+   - Calcola prob implicita = 1/quota * 100
+   - Calcola edge = prob_stimata - prob_implicita
+2. Scegli l'esito con edge PIU ALTO in assoluto (non limitarti a 1X2!)
+3. Esplora Over/Under, BTTS, Handicap — spesso hanno piu valore di 1X2
 
 STRATEGIA ${R.toUpperCase()}:
 ${strategyMap[R]}
