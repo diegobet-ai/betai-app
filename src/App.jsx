@@ -961,23 +961,28 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const generate = async () => {
     setLoading(true); setResult(null); setReasoning("");
 
-    // ── Filtra per sport selezionati (multi) ──
+    // ── Sport selezionati (multi) → categorie da filtrare ──
+    const CAT_MAP = {"Calcio":"Calcio","Football":"Calcio","Basket":"Basket","Basketball":"Basket","Tennis":"Tennis","Formula 1":"Formula 1","NFL":"Football","NHL":"Hockey","MLB":"Baseball","MMA":"MMA"};
     const selectedCats = new Set();
-    sports.forEach(i => {
-      const s = t.sports[i];
-      if(s==="Calcio"||s==="Football") selectedCats.add("Calcio");
-      else if(s==="Basket"||s==="Basketball") selectedCats.add("Basket");
-      else if(s==="Tennis") selectedCats.add("Tennis");
-      else if(s==="Formula 1") selectedCats.add("Formula 1");
-      else selectedCats.add(s);
-    });
-    const filtered = sports.size === 0
-      ? todayMatches
-      : todayMatches.filter(m => selectedCats.has(m.cat));
-    const sportCat = sports.size === 0 ? "Tutti gli sport" :
-      [...sports].map(i => t.sports[i]).join(", ");
+    if (sports.size === 0) {
+      // Tutti
+      todayMatches.forEach(m => selectedCats.add(m.cat));
+    } else {
+      sports.forEach(idx => {
+        const sName = t.sports[idx];
+        selectedCats.add(CAT_MAP[sName] || sName);
+      });
+    }
+    const filtered = todayMatches.filter(m => selectedCats.has(m.cat));
+    const sportLabels = sports.size === 0
+      ? "Tutti gli sport"
+      : [...sports].map(i => t.sports[i]).join(" + ");
 
-    // matchList built later with shuffle for variety
+    // Snapshot dei parametri al momento del click (evita stale closure)
+    const snapNumMatches = numMatches;
+    const snapRisk = risk;
+    const snapProb = prob;
+    const snapQuota = quota;
 
     const hasRealMatches = filtered.length > 0;
     const todayDate = new Date().toLocaleDateString("it-IT", {weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -1020,7 +1025,7 @@ Esplora mercati non ovvi: Over 3.5, Handicap asiatici, entrambe segnano in parti
 Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica dietro ogni scelta.`,
       },
     };
-    const rp = riskParams[risk];
+    const rp = riskParams[snapRisk];
 
     // Build strict prompt based on risk and numMatches
     const minQ = rp.minOdds;
@@ -1042,13 +1047,13 @@ Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica
 DATA: ${todayDate} | LINGUA: ${isIt?"Italiano":"Inglese"}
 
 === PARAMETRI OBBLIGATORI ===
-- NUMERO SELEZIONI: esattamente ${numMatches} (ne voglio ESATTAMENTE ${numMatches}, ne una di piu ne una di meno)
+- NUMERO SELEZIONI: esattamente ${snapNumMatches} (ne voglio ESATTAMENTE ${snapNumMatches}, ne una di piu ne una di meno)
 - FASCIA QUOTA OBBLIGATORIA: ogni singola quota DEVE essere tra ${minQ} e ${maxQ === 99 ? "99.00 (nessun limite)" : maxQ}
 - QUOTA FUORI FASCIA = SELEZIONE VIETATA (se la quota e ${minQ > 1.05 ? "sotto "+minQ : ""}${maxQ < 99 ? " o sopra "+maxQ : ""} non puoi usarla)
-- LIVELLO RISCHIO: ${risk.toUpperCase()}
+- LIVELLO RISCHIO: ${snapRisk.toUpperCase()}
 
 === PARTITE DISPONIBILI (quote reali bookmaker) ===
-${hasRealMatches ? matchListVaried : "Nessuna partita reale — inventa "+numMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)+". ID generazione: "+seed}
+${hasRealMatches ? matchListVaried : "Nessuna partita reale — inventa "+snapNumMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)+". ID generazione: "+seed}
 
 === COME ANALIZZARE OGNI PARTITA ===
 Per ogni partita della lista sopra:
@@ -1062,7 +1067,7 @@ Per ogni partita della lista sopra:
    - EDGE = tua_stima - prob_implicita
 3. Scegli l'esito con EDGE PIU ALTO per quella partita
 
-=== STRATEGIA ${risk.toUpperCase()} ===
+=== STRATEGIA ${snapRisk.toUpperCase()} ===
 ${rp.strategy}
 
 === IMPORTANTE: OGNI GENERAZIONE DEVE ESSERE DIVERSA ===
@@ -1071,8 +1076,9 @@ Non ripetere le stesse selezioni della generazione precedente.
 Esplora mercati diversi, orari diversi, campionati diversi ogni volta.
 
 === REGOLA FINALE ===
-Costruisci la schedina con ESATTAMENTE ${numMatches} selezioni, TUTTE con quota tra ${minQ} e ${maxQ===99?"(nessun limite superiore)":maxQ}.
+Costruisci la schedina con ESATTAMENTE ${snapNumMatches} selezioni, TUTTE con quota tra ${minQ} e ${maxQ===99?"(nessun limite superiore)":maxQ}.
 Se una partita non ha esiti nella fascia giusta, SALTALA e usa un'altra partita.
+Sport selezionati: ${sportLabels}
 Calcola quota_totale = prodotto di tutte le quote singole.
 Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
 
@@ -1102,7 +1108,7 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
         sport: [...sports].map(i=>t.sportEmoji[i]).join('')||'🎯',
         matches: parsed.matches?.map(m => m.teams).join(" + ") || "—",
         date: new Date().toLocaleDateString("it-IT"),
-        quota: parsed.total_quota?.toFixed(2) || quota,
+        quota: parsed.total_quota?.toFixed(2) || snapQuota,
         status: "wait"
       }, ...h.slice(0,9)]);
     } catch(err) {
