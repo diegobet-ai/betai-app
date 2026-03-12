@@ -313,16 +313,103 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .footer-link:hover{color:var(--text);}
 .footer-bottom{border-top:1px solid var(--border);padding:20px 40px;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);}
 .footer-disclaimer{font-size:10px;color:var(--muted);max-width:600px;line-height:1.7;}
+/* ── MOBILE RESPONSIVE ── */
 @media(max-width:768px){
-  .nav{padding:12px 20px;}.nav-links{display:none;}
-  .pricing-grid{grid-template-columns:1fr;}.price-card.featured{transform:scale(1);}
-  .sidebar{width:56px;padding:14px 8px;}
-  .sidebar-logo-text,.sidebar-item span,.sidebar-section{display:none;}
-  .dash-main{margin-left:56px;padding:16px;}
-  .stats-bar{grid-template-columns:repeat(2,1fr);}
-  .gen-top{grid-template-columns:1fr;}
+  /* Nav */
+  .nav{padding:12px 16px;}.nav-links{display:none;}
+
+  /* Hero */
+  .hero{padding:90px 16px 60px;}
+  .hero-stats{gap:24px;margin-top:40px;}
+  .hstat-val{font-size:28px;}
+  .hero-btns{flex-direction:column;align-items:center;}
+  .btn-primary,.btn-outline{width:100%;max-width:320px;text-align:center;}
+
+  /* Pricing */
+  .pricing-grid{grid-template-columns:1fr;}
+  .price-card.featured{transform:scale(1);}
+
+  /* Footer */
+  .footer{grid-template-columns:1fr 1fr;padding:32px 16px;gap:20px;}
+  .footer-bottom{flex-direction:column;gap:10px;text-align:center;padding:16px;}
+
+  /* Dashboard layout - bottom nav on mobile */
+  .sidebar{display:none;}
+  .dash-main{margin-left:0 !important;padding:12px 12px 80px !important;}
+  .dash-topbar{padding:14px 0 10px !important;margin-bottom:14px !important;}
+  .dash-title{font-size:20px !important;}
+
+  /* Stats bar */
+  .stats-bar{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat-card{padding:12px 10px;}
+  .stat-card-val{font-size:22px;}
+
+  /* Generator card */
+  .generator-card{padding:16px !important;}
+  .risk-grid{grid-template-columns:1fr !important;}
+  .risk-card-btn{padding:12px !important;}
+
+  /* Today matches */
+  .today-section{padding:14px !important;}
+  .matches-grid{grid-template-columns:1fr !important;}
+  .match-row{padding:10px !important;}
+  .today-header{flex-wrap:wrap;gap:8px;}
+
+  /* Results */
+  .result-wrap{padding:14px !important;}
+  .result-top{flex-direction:column;gap:10px;align-items:flex-start !important;}
+  .result-stats{grid-template-columns:repeat(3,1fr);gap:6px;}
+  .rs-box{padding:8px 4px;}
+  .match-item{padding:10px 12px !important;}
+  .match-teams{font-size:13px !important;}
+
+  /* History */
+  .history-item{flex-wrap:wrap;gap:8px;}
+  .history-info{min-width:0;}
+
+  /* Wins grid */
   .wins-counters{grid-template-columns:repeat(2,1fr);}
-  .footer{grid-template-columns:1fr 1fr;}
+  .dash-wins-grid{grid-template-columns:1fr;}
+
+  /* Gen button */
+  .gen-btn{font-size:14px !important;padding:14px !important;}
+
+  /* Sliders */
+  .slider-row{gap:6px !important;}
+}
+
+/* Bottom nav bar for mobile */
+@media(max-width:768px){
+  .mobile-bottom-nav{
+    display:flex !important;
+  }
+}
+.mobile-bottom-nav{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:rgba(9,13,24,0.97);
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border2);
+  z-index:300;
+  padding:6px 0 env(safe-area-inset-bottom,6px);
+}
+.mobile-nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:6px 4px;cursor:pointer;transition:all 0.2s;
+  color:var(--muted);font-size:9px;font-weight:700;letter-spacing:0.5px;
+  text-transform:uppercase;
+}
+.mobile-nav-item.active{color:var(--cyan);}
+.mobile-nav-item .nav-icon{font-size:20px;line-height:1;}
+
+/* Tablet */
+@media(min-width:769px) and (max-width:1024px){
+  .sidebar{width:60px;padding:14px 8px;}
+  .sidebar-logo-text,.sidebar-item span,.sidebar-section{display:none;}
+  .dash-main{margin-left:60px;padding:20px;}
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .risk-grid{grid-template-columns:1fr 1fr 1fr !important;}
 }
 `;
 
@@ -1770,6 +1857,16 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
           {T[lang].footer.disclaimer}
         </div>
       </main>
+
+    {/* Mobile Bottom Nav */}
+    <nav className="mobile-bottom-nav">
+      {t.nav.map((item,i)=>(
+        <div key={i} className={"mobile-nav-item"+(activeNav===i?" active":"")} onClick={()=>setActiveNav(i)}>
+          <span className="nav-icon">{t.navEmoji[i]}</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </nav>
     </div>
   );
 }
