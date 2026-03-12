@@ -939,6 +939,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [history, setHistory] = useState([]);
   const [activeNav, setActiveNav] = useState(0);
   const [todayMatches, setTodayMatches] = useState([]);
+  const [numMatches, setNumMatches] = useState(3);
 
   useEffect(()=>{
     if(risk==="safe"){setProb(72);setQuota(3);}
@@ -982,9 +983,42 @@ function Dashboard({ user, onLogout, lang, setLang }) {
     const todayDate = new Date().toLocaleDateString("it-IT", {weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
     const riskParams = {
-      safe:     { n:"2",     minProb:"65%", maxSingleOdds:"2.20", targetTotal:`${quota}x`, desc:"alta probabilita, basso rischio" },
-      balanced: { n:"3-4",   minProb:"50%", maxSingleOdds:"3.50", targetTotal:`${quota}x`, desc:"equilibrio probabilita/quota" },
-      high:     { n:"4-6",   minProb:"35%", maxSingleOdds:"8.00", targetTotal:`${quota}x`, desc:"alta quota, rischio elevato" },
+      safe: {
+        desc: "SAFE — quote 1.05 a 1.60",
+        oddsRange: "tra 1.05 e 1.60",
+        minOdds: 1.05,
+        maxOdds: 1.60,
+        strategy: `Seleziona esiti con quota bookmaker tra 1.05 e 1.60.
+Questi sono i grandi favoriti. MA non basta che la quota sia bassa — devi ANALIZZARE se il favorito e davvero cosi sicuro.
+Calcola il VALUE: se la tua stima di probabilita reale e MAGGIORE della probabilita implicita del bookmaker (1/quota), c'e valore.
+Esempio: quota 1.40 = prob implicita 71.4%. Se stimi il favorito al 78%, edge = +6.6% → BUONA SCELTA.
+Se stimi solo 68%, edge negativo → SCARTA e cerca un'altra partita.
+Esplora TUTTI i mercati: 1X2, Over/Under, Handicap, BTTS — scegli il mercato con PIU VALORE nella fascia 1.05-1.60.`,
+      },
+      balanced: {
+        desc: "BALANCED — quote 1.61 a 2.00",
+        oddsRange: "tra 1.61 e 2.00",
+        minOdds: 1.61,
+        maxOdds: 2.00,
+        strategy: `Seleziona esiti con quota bookmaker tra 1.61 e 2.00.
+Questa fascia offre il miglior equilibrio rischio/rendimento. Cerca il MASSIMO VALUE.
+Per ogni partita analizza TUTTI i mercati disponibili nella fascia (1X2, Over/Under 1.5/2.5, BTTS, Handicap).
+Calcola edge per ogni opzione: edge = tua_prob_stimata - (1/quota * 100).
+Scegli l'esito con EDGE PIU ALTO, non necessariamente il piu ovvio.
+Non fossilizzarti su 1 e 2 classici — spesso Over 2.5 o BTTS Yes offrono piu valore nella stessa fascia di quota.`,
+      },
+      high: {
+        desc: "HIGH RISK — quote superiori a 2.00",
+        oddsRange: "superiori a 2.00",
+        minOdds: 2.01,
+        maxOdds: 99,
+        strategy: `Seleziona esiti con quota bookmaker SUPERIORE a 2.00.
+Cerca gli UNDERDOG e le sorprese con valore reale — non scommesse casuali.
+Analizza: squadre in forma positiva ma sottovalutate dai bookmaker, trasferte di squadre forti, Over alti in partite offensive.
+Un underdog vale se la tua stima di probabilita e almeno il 60-70% della probabilita implicita (es. quota 3.00 = 33% implicita, se stimi 25%+ ha comunque valore relativo).
+Esplora mercati non ovvi: Over 3.5, Handicap asiatici, entrambe segnano in partite offensive.
+Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica dietro ogni scelta.`,
+      },
     };
     const rp = riskParams[risk];
 
@@ -995,27 +1029,40 @@ LINGUA RISPOSTA: ${isIt?"Italiano":"English"}
 
 PARAMETRI UTENTE:
 - Sport richiesto: ${sportCat}
-- Livello rischio: ${risk} (${rp.desc})
-- Probabilita target schedina: ${prob}%
-- Quota totale target: ${quota}x
-- Numero partite da selezionare: ${rp.n}
+- Livello rischio: ${risk.toUpperCase()} — ${rp.desc}
+- Numero ESATTO di partite da selezionare: ${numMatches}
+- Probabilita minima per singola selezione: ${rp.minSingleProb}%
+- Quota massima per singola selezione: ${rp.maxSingleOdds}x
+- Tipo selezioni preferite: ${rp.preferredSelections}
+- Criterio ordinamento: ${rp.sortBy}
+- Quota totale target schedina: ${quota}x
+- Probabilita combinata target: ${prob}%
 
 ${hasRealMatches ? `PARTITE REALI DISPONIBILI OGGI (con quote live dai bookmaker):
 ${matchList}
 
 ISTRUZIONI ANALISI:
-1. Analizza SOLO le partite dalla lista sopra — sono partite REALI di oggi
-2. Per ogni partita candidata:
-   a) Stima la probabilita REALE dell'esito usando la tua conoscenza delle squadre: forma recente (ultimi 5), H2H storico, rendimento casa/trasferta, infortuni noti, importanza della partita
-   b) Confronta con la probabilita IMPLICITA del bookmaker (1/quota * 100)
-   c) Calcola l'EDGE = tua_stima - prob_implicita
-   d) Includi solo partite con EDGE POSITIVO (> 3%)
-3. Scegli la combinazione di ${rp.n} partite che:
-   - Produce quota totale PIU VICINA a ${quota}x (moltiplica le quote singole)
-   - Produce probabilita combinata PIU VICINA a ${prob}% (moltiplica le prob singole)
-4. Per ogni partita includi stat_chips con dati reali: forma, H2H, vantaggio casa, edge vs bookmaker` 
+1. Analizza OGNI partita della lista — sono partite REALI con quote REALI dei bookmaker
+2. Per ogni partita e per OGNI mercato disponibile nella fascia di quota richiesta:
+   a) Stima la probabilita reale usando la tua conoscenza: forma recente (ultimi 5), H2H storico, rendimento casa/trasferta, infortuni noti, motivazione
+   b) Calcola prob. implicita bookmaker = (1 / quota) * 100
+   c) Calcola EDGE = tua_prob_stimata - prob_implicita
+   d) Un edge positivo = valore reale. Maggiore l'edge, migliore la scelta.
+
+3. FASCIA DI QUOTA OBBLIGATORIA: ${rp.oddsRange}
+   Usa SOLO quote in questa fascia. Non uscire da questo range.
+
+4. STRATEGIA PER QUESTO LIVELLO DI RISCHIO:
+${rp.strategy}
+
+5. Seleziona ESATTAMENTE ${numMatches} pronostici.
+   - Se non trovi abbastanza partite con edge positivo nella fascia, scegli quelle con edge migliore anche se leggermente negativo
+   - NON ripetere la stessa partita due volte
+   - Puoi usare mercati diversi sulla stessa partita SOLO se sono indipendenti (es. Over 2.5 + BTTS No sono correlati — evita)
+
+6. Per ogni selezione calcola la quota REALE dalla lista (usa il numero esatto dalla lista partite)` 
 : `ATTENZIONE: Nessuna partita reale disponibile al momento.
-Inventa ${rp.n} partite realistiche di ${sportCat} che potrebbero giocarsi oggi, con quote verosimili.
+Inventa ${numMatches} partite realistiche di ${sportCat} con quote nella fascia ${rp.oddsRange}.
 Analizza come se fossero reali.`}
 
 FORMATO RISPOSTA — solo JSON valido, senza markdown, senza backtick:
@@ -1198,6 +1245,28 @@ FORMATO RISPOSTA — solo JSON valido, senza markdown, senza backtick:
                 </div>
               </div>
             </div>
+            {/* Numero partite */}
+            <div style={{marginBottom:20}}>
+              <span className="label-text">{isIt?"Numero partite nella schedina":"Number of matches in bet"}</span>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginTop:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,background:"var(--card2)",border:"1px solid var(--border2)",borderRadius:12,padding:"8px 16px"}}>
+                  <button onClick={()=>setNumMatches(n=>Math.max(1,n-1))} style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                  <span style={{fontFamily:"var(--display)",fontSize:28,color:"var(--cyan)",minWidth:32,textAlign:"center",letterSpacing:1}}>{numMatches}</span>
+                  <button onClick={()=>setNumMatches(n=>Math.min(25,n+1))} style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  {[1,3,5,10,15,25].map(n=>(
+                    <button key={n} onClick={()=>setNumMatches(n)} style={{padding:"5px 10px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",background:numMatches===n?"rgba(0,212,255,0.1)":"var(--card2)",borderColor:numMatches===n?"var(--cyan)":"var(--border)",color:numMatches===n?"var(--cyan)":"var(--muted2)"}}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <span style={{fontSize:11,color:"var(--muted2)"}}>
+                  {isIt?`partite selezionate`:`matches selected`}
+                </span>
+              </div>
+            </div>
+
             <div style={{marginBottom:20}}>
               <div className="slider-row">
                 <span className="slider-lbl">🎯 {t.prob}</span>
