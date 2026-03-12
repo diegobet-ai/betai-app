@@ -1022,67 +1022,46 @@ Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica
     };
     const rp = riskParams[risk];
 
-    const prompt = `Sei BetAI, un analista esperto di scommesse sportive con profonda conoscenza statistica.
+    // Build strict prompt based on risk and numMatches
+    const minQ = rp.minOdds;
+    const maxQ = rp.maxOdds;
 
-DATA ODIERNA: ${todayDate}
-LINGUA RISPOSTA: ${isIt?"Italiano":"English"}
+    const prompt = `Sei BetAI, analista esperto di scommesse sportive. Devi costruire una schedina rispettando RIGIDAMENTE i parametri.
 
-PARAMETRI UTENTE:
-- Sport richiesto: ${sportCat}
-- Livello rischio: ${risk.toUpperCase()} — ${rp.desc}
-- Numero ESATTO di partite da selezionare: ${numMatches}
-- Probabilita minima per singola selezione: ${rp.minSingleProb}%
-- Quota massima per singola selezione: ${rp.maxSingleOdds}x
-- Tipo selezioni preferite: ${rp.preferredSelections}
-- Criterio ordinamento: ${rp.sortBy}
-- Quota totale target schedina: ${quota}x
-- Probabilita combinata target: ${prob}%
+DATA: ${todayDate} | LINGUA: ${isIt?"Italiano":"Inglese"}
 
-${hasRealMatches ? `PARTITE REALI DISPONIBILI OGGI (con quote live dai bookmaker):
-${matchList}
+=== PARAMETRI OBBLIGATORI ===
+- NUMERO SELEZIONI: esattamente ${numMatches} (ne voglio ESATTAMENTE ${numMatches}, ne una di piu ne una di meno)
+- FASCIA QUOTA OBBLIGATORIA: ogni singola quota DEVE essere tra ${minQ} e ${maxQ === 99 ? "99.00 (nessun limite)" : maxQ}
+- QUOTA FUORI FASCIA = SELEZIONE VIETATA (se la quota e ${minQ > 1.05 ? "sotto "+minQ : ""}${maxQ < 99 ? " o sopra "+maxQ : ""} non puoi usarla)
+- LIVELLO RISCHIO: ${risk.toUpperCase()}
 
-ISTRUZIONI ANALISI:
-1. Analizza OGNI partita della lista — sono partite REALI con quote REALI dei bookmaker
-2. Per ogni partita e per OGNI mercato disponibile nella fascia di quota richiesta:
-   a) Stima la probabilita reale usando la tua conoscenza: forma recente (ultimi 5), H2H storico, rendimento casa/trasferta, infortuni noti, motivazione
-   b) Calcola prob. implicita bookmaker = (1 / quota) * 100
-   c) Calcola EDGE = tua_prob_stimata - prob_implicita
-   d) Un edge positivo = valore reale. Maggiore l'edge, migliore la scelta.
+=== PARTITE DISPONIBILI (quote reali bookmaker) ===
+${hasRealMatches ? matchList : "Nessuna partita reale — inventa "+numMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)}
 
-3. FASCIA DI QUOTA OBBLIGATORIA: ${rp.oddsRange}
-   Usa SOLO quote in questa fascia. Non uscire da questo range.
+=== COME ANALIZZARE OGNI PARTITA ===
+Per ogni partita della lista sopra:
+1. Identifica TUTTI gli esiti possibili nella fascia ${minQ}-${maxQ===99?"99":maxQ}:
+   - Vittoria casa (quota 1), Pareggio (quota X), Vittoria ospite (quota 2)
+   - Over/Under 2.5 (stima in base al tipo di partita)
+   - BTTS Yes/No (stima in base alle squadre)
+2. Per ogni esito nella fascia calcola:
+   - Prob. implicita bookmaker = 1/quota * 100
+   - Tua stima prob. reale (usa conoscenza forma, H2H, casa/trasferta, infortuni)
+   - EDGE = tua_stima - prob_implicita
+3. Scegli l'esito con EDGE PIU ALTO per quella partita
 
-4. STRATEGIA PER QUESTO LIVELLO DI RISCHIO:
+=== STRATEGIA ${risk.toUpperCase()} ===
 ${rp.strategy}
 
-5. Seleziona ESATTAMENTE ${numMatches} pronostici.
-   - Se non trovi abbastanza partite con edge positivo nella fascia, scegli quelle con edge migliore anche se leggermente negativo
-   - NON ripetere la stessa partita due volte
-   - Puoi usare mercati diversi sulla stessa partita SOLO se sono indipendenti (es. Over 2.5 + BTTS No sono correlati — evita)
+=== REGOLA FINALE ===
+Costruisci la schedina con ESATTAMENTE ${numMatches} selezioni, TUTTE con quota tra ${minQ} e ${maxQ===99?"(nessun limite superiore)":maxQ}.
+Se una partita non ha esiti nella fascia giusta, SALTALA e usa un'altra partita.
+Calcola quota_totale = prodotto di tutte le quote singole.
+Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
 
-6. Per ogni selezione calcola la quota REALE dalla lista (usa il numero esatto dalla lista partite)` 
-: `ATTENZIONE: Nessuna partita reale disponibile al momento.
-Inventa ${numMatches} partite realistiche di ${sportCat} con quote nella fascia ${rp.oddsRange}.
-Analizza come se fossero reali.`}
-
-FORMATO RISPOSTA — solo JSON valido, senza markdown, senza backtick:
-{
-  "matches": [
-    {
-      "teams": "Squadra A vs Squadra B",
-      "league": "Nome Campionato",
-      "time": "HH:MM",
-      "selection": "1 oppure X oppure 2 oppure Over 2.5 oppure Under 2.5",
-      "single_prob": 68,
-      "quota": 1.85,
-      "ai_edge": "+6%",
-      "stat_chips": ["Forma 4/5 ✓", "H2H 3-1", "xG 1.9", "Edge +6%", "Casa 78%"]
-    }
-  ],
-  "total_quota": ${quota},
-  "estimated_prob": ${prob},
-  "reasoning": "Analisi dettagliata in ${isIt?"italiano":"english"}: per ogni partita spiega PERCHE' e stata scelta con dati statistici specifici, il calcolo dell'edge, e perche' la combinazione si avvicina ai parametri richiesti. Minimo 5 frasi."
-}`;
+=== FORMATO JSON (solo JSON, zero markdown, zero backtick) ===
+{"matches":[{"teams":"Squadra A vs Squadra B","league":"Campionato","time":"HH:MM","selection":"esito scelto","single_prob":65,"quota":1.45,"ai_edge":"+8%","stat_chips":["Forma 4/5","H2H 3-1","Edge +8%","Quota implicita 55%","Stima reale 63%"]}],"total_quota":5.20,"estimated_prob":18,"reasoning":"${isIt?"Analisi in italiano":"Analysis in English"}: spiega ogni scelta con dati statistici, calcolo edge, e perche la quota e nella fascia richiesta. Min 4 frasi."}`;
 
     try {
       const res = await fetch("/api/analyze", {
