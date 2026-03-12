@@ -928,9 +928,12 @@ function DashWins({ lang }) {
 function Dashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang].dash;
   const isIt = lang==="it";
-  const [sports, setSports] = useState(new Set([0,1,2,3])); // multi-select
+
+  // ── State ──
+  const [selectedSports, setSelectedSports] = useState(new Set(["Calcio","Basket","Football","Hockey","Baseball","MMA"]));
   const [risk, setRisk] = useState("balanced");
-  const [prob, setProb] = useState(60);
+  const [numMatches, setNumMatches] = useState(3);
+  const [prob, setProb] = useState(55);
   const [quota, setQuota] = useState(8);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -939,205 +942,174 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [history, setHistory] = useState([]);
   const [activeNav, setActiveNav] = useState(0);
   const [todayMatches, setTodayMatches] = useState([]);
-  const [numMatches, setNumMatches] = useState(3);
 
-  useEffect(()=>{
-    if(risk==="safe"){setProb(72);setQuota(3);}
-    if(risk==="balanced"){setProb(55);setQuota(8);}
-    if(risk==="high"){setProb(20);setQuota(50);}
-  },[risk]);
+  // All available sport categories from loaded matches
+  const availableCats = [...new Set(todayMatches.map(m => m.cat))];
+
+  const RISK_CONFIG = {
+    safe:     { minQ:1.05, maxQ:1.60, label:"SAFE 1.05–1.60",     color:"var(--green)", desc:"Quote basse, favoriti sicuri" },
+    balanced: { minQ:1.61, maxQ:2.00, label:"BALANCED 1.61–2.00", color:"var(--gold)",  desc:"Equilibrio rischio/rendimento" },
+    high:     { minQ:2.01, maxQ:99,   label:"HIGH RISK >2.00",    color:"var(--red)",   desc:"Quote alte, massima vincita" },
+  };
 
   const probColor = prob>=65?"var(--green)":prob>=40?"var(--gold)":"var(--red)";
   const today = new Date().toLocaleDateString(isIt?"it-IT":"en-GB",{weekday:"long",day:"numeric",month:"long"});
-  // sportName now computed in generate() from sports Set
+
+  const toggleSport = (cat) => {
+    setSelectedSports(prev => {
+      const next = new Set(prev);
+      if(next.has(cat)) next.delete(cat); else next.add(cat);
+      return next;
+    });
+  };
 
   const animateReasoning = (text) => {
     setTyping(true); let i=0;
-    const iv = setInterval(()=>{ setReasoning(text.slice(0,i)); i+=5;
-      if(i>text.length){setReasoning(text);setTyping(false);clearInterval(iv);}
-    },16);
+    const iv = setInterval(()=>{
+      setReasoning(text.slice(0,i)); i+=6;
+      if(i>text.length){ setReasoning(text); setTyping(false); clearInterval(iv); }
+    },18);
   };
 
   const generate = async () => {
+    // Snapshot all params at click time
+    const N = numMatches;
+    const R = risk;
+    const RC = RISK_CONFIG[R];
+    const minQ = RC.minQ;
+    const maxQ = RC.maxQ;
+    const cats = selectedSports.size > 0 ? selectedSports : new Set(availableCats);
+
     setLoading(true); setResult(null); setReasoning("");
 
-    // ── Sport selezionati (multi) → categorie da filtrare ──
-    const CAT_MAP = {"Calcio":"Calcio","Football":"Calcio","Basket":"Basket","Basketball":"Basket","Tennis":"Tennis","Formula 1":"Formula 1","NFL":"Football","NHL":"Hockey","MLB":"Baseball","MMA":"MMA"};
-    const selectedCats = new Set();
-    if (sports.size === 0) {
-      // Tutti
-      todayMatches.forEach(m => selectedCats.add(m.cat));
-    } else {
-      sports.forEach(idx => {
-        const sName = t.sports[idx];
-        selectedCats.add(CAT_MAP[sName] || sName);
-      });
-    }
-    const filtered = todayMatches.filter(m => selectedCats.has(m.cat));
-    const sportLabels = sports.size === 0
-      ? "Tutti gli sport"
-      : [...sports].map(i => t.sports[i]).join(" + ");
+    // Filter matches by selected sports
+    const filtered = todayMatches.filter(m => cats.has(m.cat));
+    const sportLabel = [...cats].join(", ");
 
-    // Snapshot dei parametri al momento del click (evita stale closure)
-    const snapNumMatches = numMatches;
-    const snapRisk = risk;
-    const snapProb = prob;
-    const snapQuota = quota;
-
-    const hasRealMatches = filtered.length > 0;
-    const todayDate = new Date().toLocaleDateString("it-IT", {weekday:"long",day:"numeric",month:"long",year:"numeric"});
-
-    const riskParams = {
-      safe: {
-        desc: "SAFE — quote 1.05 a 1.60",
-        oddsRange: "tra 1.05 e 1.60",
-        minOdds: 1.05,
-        maxOdds: 1.60,
-        strategy: `Seleziona esiti con quota bookmaker tra 1.05 e 1.60.
-Questi sono i grandi favoriti. MA non basta che la quota sia bassa — devi ANALIZZARE se il favorito e davvero cosi sicuro.
-Calcola il VALUE: se la tua stima di probabilita reale e MAGGIORE della probabilita implicita del bookmaker (1/quota), c'e valore.
-Esempio: quota 1.40 = prob implicita 71.4%. Se stimi il favorito al 78%, edge = +6.6% → BUONA SCELTA.
-Se stimi solo 68%, edge negativo → SCARTA e cerca un'altra partita.
-Esplora TUTTI i mercati: 1X2, Over/Under, Handicap, BTTS — scegli il mercato con PIU VALORE nella fascia 1.05-1.60.`,
-      },
-      balanced: {
-        desc: "BALANCED — quote 1.61 a 2.00",
-        oddsRange: "tra 1.61 e 2.00",
-        minOdds: 1.61,
-        maxOdds: 2.00,
-        strategy: `Seleziona esiti con quota bookmaker tra 1.61 e 2.00.
-Questa fascia offre il miglior equilibrio rischio/rendimento. Cerca il MASSIMO VALUE.
-Per ogni partita analizza TUTTI i mercati disponibili nella fascia (1X2, Over/Under 1.5/2.5, BTTS, Handicap).
-Calcola edge per ogni opzione: edge = tua_prob_stimata - (1/quota * 100).
-Scegli l'esito con EDGE PIU ALTO, non necessariamente il piu ovvio.
-Non fossilizzarti su 1 e 2 classici — spesso Over 2.5 o BTTS Yes offrono piu valore nella stessa fascia di quota.`,
-      },
-      high: {
-        desc: "HIGH RISK — quote superiori a 2.00",
-        oddsRange: "superiori a 2.00",
-        minOdds: 2.01,
-        maxOdds: 99,
-        strategy: `Seleziona esiti con quota bookmaker SUPERIORE a 2.00.
-Cerca gli UNDERDOG e le sorprese con valore reale — non scommesse casuali.
-Analizza: squadre in forma positiva ma sottovalutate dai bookmaker, trasferte di squadre forti, Over alti in partite offensive.
-Un underdog vale se la tua stima di probabilita e almeno il 60-70% della probabilita implicita (es. quota 3.00 = 33% implicita, se stimi 25%+ ha comunque valore relativo).
-Esplora mercati non ovvi: Over 3.5, Handicap asiatici, entrambe segnano in partite offensive.
-Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica dietro ogni scelta.`,
-      },
-    };
-    const rp = riskParams[snapRisk];
-
-    // Build strict prompt based on risk and numMatches
-    const minQ = rp.minOdds;
-    const maxQ = rp.maxOdds;
-
-    // Seed casuale per forzare variazione ogni generazione
+    // Shuffle for variety
     const seed = Math.random().toString(36).slice(2,8).toUpperCase();
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
-    const matchListVaried = shuffled.slice(0, 20).map((m, idx) => {
-      const impliedHome = m.home_odds ? (1/m.home_odds*100).toFixed(1) : "N/A";
-      const impliedDraw = m.draw_odds ? (1/m.draw_odds*100).toFixed(1) : "N/A";
-      const impliedAway = m.away_odds ? (1/m.away_odds*100).toFixed(1) : "N/A";
-      return `${idx+1}. ${m.teams} | ${m.league} | ore ${m.time}
-   Quote: 1=${m.home_odds||"N/A"} (imp.${impliedHome}%) X=${m.draw_odds||"-"} (imp.${impliedDraw}%) 2=${m.away_odds||"N/A"} (imp.${impliedAway}%)`;
+
+    // Build match list with implied probs
+    const matchList = shuffled.slice(0,25).map((m,idx) => {
+      const i1 = m.home_odds ? (100/m.home_odds).toFixed(1)+"%" : "N/A";
+      const ix = m.draw_odds ? (100/m.draw_odds).toFixed(1)+"%" : "-";
+      const i2 = m.away_odds ? (100/m.away_odds).toFixed(1)+"%" : "N/A";
+      return `${idx+1}. [${m.cat}] ${m.teams} | ${m.league} | ${m.time}\n   1=${m.home_odds||"?"} (${i1})  X=${m.draw_odds||"-"} (${ix})  2=${m.away_odds||"?"} (${i2})`;
     }).join("\n");
 
-    const prompt = `[ID:${seed}] Sei BetAI, analista esperto di scommesse sportive. Devi costruire una schedina rispettando RIGIDAMENTE i parametri.
+    const hasMatches = filtered.length > 0;
 
-DATA: ${todayDate} | LINGUA: ${isIt?"Italiano":"Inglese"}
+    const strategyMap = {
+      safe: `Seleziona SOLO esiti con quota tra ${minQ} e ${maxQ}.
+Prediligi i FAVORITI NETTI (1X2 con prob >62%).
+Per ogni partita: calcola prob implicita = 1/quota*100. Stima prob reale. Edge = stima-implicita.
+Scegli l'esito con edge POSITIVO PIU ALTO nella fascia ${minQ}-${maxQ}.
+Esplora anche Over/Under bassi e BTTS se rientrano nella fascia.
+VIETATO usare quote fuori dal range ${minQ}-${maxQ}.`,
+      balanced: `Seleziona SOLO esiti con quota tra ${minQ} e ${maxQ}.
+Cerca il MASSIMO VALORE (edge = prob_stimata - prob_implicita).
+Non scegliere solo 1 e 2 — valuta anche X, Over 2.5, BTTS Yes se rientrano in ${minQ}-${maxQ}.
+Privilegia le selezioni con edge > 5%.
+VIETATO usare quote fuori dal range ${minQ}-${maxQ}.`,
+      high: `Seleziona SOLO esiti con quota SUPERIORE a ${minQ}.
+Cerca underdog, outsider, Over alti, pareggi a sorpresa.
+Accetta prob basse (anche 20-35%) se la quota offre valore reale.
+Valuta: squadre in forma ma sottovalutate, trasferte difficili, partite offensive.
+VIETATO usare quote sotto ${minQ}.`,
+    };
 
-=== PARAMETRI OBBLIGATORI ===
-- NUMERO SELEZIONI: esattamente ${snapNumMatches} (ne voglio ESATTAMENTE ${snapNumMatches}, ne una di piu ne una di meno)
-- FASCIA QUOTA OBBLIGATORIA: ogni singola quota DEVE essere tra ${minQ} e ${maxQ === 99 ? "99.00 (nessun limite)" : maxQ}
-- QUOTA FUORI FASCIA = SELEZIONE VIETATA (se la quota e ${minQ > 1.05 ? "sotto "+minQ : ""}${maxQ < 99 ? " o sopra "+maxQ : ""} non puoi usarla)
-- LIVELLO RISCHIO: ${snapRisk.toUpperCase()}
+    const prompt = `[${seed}] Sei BetAI, analista sportivo esperto. Costruisci una schedina rispettando TUTTI i parametri.
 
-=== PARTITE DISPONIBILI (quote reali bookmaker) ===
-${hasRealMatches ? matchListVaried : "Nessuna partita reale — inventa "+snapNumMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)+". ID generazione: "+seed}
+DATA: ${new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+LINGUA RISPOSTA: ${isIt?"Italiano":"Inglese"}
 
-=== COME ANALIZZARE OGNI PARTITA ===
-Per ogni partita della lista sopra:
-1. Identifica TUTTI gli esiti possibili nella fascia ${minQ}-${maxQ===99?"99":maxQ}:
-   - Vittoria casa (quota 1), Pareggio (quota X), Vittoria ospite (quota 2)
-   - Over/Under 2.5 (stima in base al tipo di partita)
-   - BTTS Yes/No (stima in base alle squadre)
-2. Per ogni esito nella fascia calcola:
-   - Prob. implicita bookmaker = 1/quota * 100
-   - Tua stima prob. reale (usa conoscenza forma, H2H, casa/trasferta, infortuni)
-   - EDGE = tua_stima - prob_implicita
-3. Scegli l'esito con EDGE PIU ALTO per quella partita
+╔══ PARAMETRI OBBLIGATORI ══╗
+║ Numero selezioni: ESATTAMENTE ${N}
+║ Fascia quota: OGNI quota DEVE essere tra ${minQ} e ${maxQ===99?"99 (no limite)":maxQ}
+║ Livello rischio: ${R.toUpperCase()} — ${RC.desc}
+║ Sport richiesti: ${sportLabel}
+╚═══════════════════════════╝
 
-=== STRATEGIA ${snapRisk.toUpperCase()} ===
-${rp.strategy}
+${hasMatches ? `PARTITE REALI DISPONIBILI (quote live bookmaker):
+${matchList}` : `Nessuna partita reale disponibile.
+Inventa ${N} partite verosimili di ${sportLabel} con quote nella fascia ${minQ}-${maxQ===99?20:maxQ}.`}
 
-=== IMPORTANTE: OGNI GENERAZIONE DEVE ESSERE DIVERSA ===
-ID sessione: ${seed} — usa questo ID come seme mentale per variare le tue scelte.
-Non ripetere le stesse selezioni della generazione precedente.
-Esplora mercati diversi, orari diversi, campionati diversi ogni volta.
+ANALISI DA FARE PER OGNI PARTITA:
+1. Stima prob reale usando: forma recente, H2H, casa/trasferta, infortuni, importanza gara
+2. Calcola prob implicita = 1/quota * 100
+3. Calcola edge = prob_stimata - prob_implicita
+4. Scegli l'esito con edge migliore NELLA FASCIA ${minQ}-${maxQ===99?"99":maxQ}
 
-=== REGOLA FINALE ===
-Costruisci la schedina con ESATTAMENTE ${snapNumMatches} selezioni, TUTTE con quota tra ${minQ} e ${maxQ===99?"(nessun limite superiore)":maxQ}.
-Se una partita non ha esiti nella fascia giusta, SALTALA e usa un'altra partita.
-Sport selezionati: ${sportLabels}
-Calcola quota_totale = prodotto di tutte le quote singole.
-Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
+STRATEGIA ${R.toUpperCase()}:
+${strategyMap[R]}
 
-=== FORMATO JSON (solo JSON, zero markdown, zero backtick) ===
-{"matches":[{"teams":"Squadra A vs Squadra B","league":"Campionato","time":"HH:MM","selection":"esito scelto","single_prob":65,"quota":1.45,"ai_edge":"+8%","stat_chips":["Forma 4/5","H2H 3-1","Edge +8%","Quota implicita 55%","Stima reale 63%"]}],"total_quota":5.20,"estimated_prob":18,"reasoning":"${isIt?"Analisi in italiano":"Analysis in English"}: spiega ogni scelta con dati statistici, calcolo edge, e perche la quota e nella fascia richiesta. Min 4 frasi."}`;
+REGOLA ASSOLUTA: restituisci ESATTAMENTE ${N} selezioni. Ne ${N}. Zero di piu, zero di meno.
+Ogni quota singola DEVE essere >= ${minQ} e <= ${maxQ===99?99:maxQ}.
+
+RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
+{"matches":[{"teams":"Squadra A vs Squadra B","league":"Lega","time":"HH:MM","selection":"esito","single_prob":65,"quota":1.45,"ai_edge":"+7%","stat_chips":["Forma 4/5","H2H 3-1","Edge +7%","Impl. 55%→Reale 62%"]}],"total_quota":4.20,"estimated_prob":18,"reasoning":"${isIt?"Analisi in italiano":"Analysis in English"} — min 4 frasi, spiega ogni scelta con dati e calcolo edge."}`;
 
     try {
       const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5-20251001",
-          max_tokens: 2000,
-          messages: [{ role: "user", content: prompt }]
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-haiku-4-5-20251001",
+          max_tokens:3000,
+          messages:[{role:"user",content:prompt}]
         })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const text = data.content?.map(i => i.text||"").join("") || "";
-      // Strip any markdown fences
-      const clean = text.replace(/```json[\s\S]*?```/g, txt => txt.slice(7,-3)).replace(/```/g,"").trim();
+      if(data.error) throw new Error(data.error.message);
+      const raw = data.content?.map(b=>b.text||"").join("")||"";
+      const clean = raw.replace(/```json/g,"").replace(/```/g,"").trim();
       const parsed = JSON.parse(clean);
+
+      // Enforce N matches client-side as safety net
+      if(parsed.matches && parsed.matches.length !== N) {
+        parsed.matches = parsed.matches.slice(0, N);
+        const tq = parsed.matches.reduce((a,m)=>a*(m.quota||1.5),1);
+        const ep = parsed.matches.reduce((a,m)=>a*(m.single_prob/100),1)*100;
+        parsed.total_quota = parseFloat(tq.toFixed(2));
+        parsed.estimated_prob = parseFloat(ep.toFixed(1));
+      }
+
       setResult(parsed);
-      animateReasoning(parsed.reasoning || "");
-      setHistory(h => [{
-        id: Date.now(),
-        sport: [...sports].map(i=>t.sportEmoji[i]).join('')||'🎯',
-        matches: parsed.matches?.map(m => m.teams).join(" + ") || "—",
-        date: new Date().toLocaleDateString("it-IT"),
-        quota: parsed.total_quota?.toFixed(2) || snapQuota,
-        status: "wait"
-      }, ...h.slice(0,9)]);
+      animateReasoning(parsed.reasoning||"");
+      setHistory(h=>[{
+        id:Date.now(),
+        sport:[...cats].map(c=>c==="Calcio"?"⚽":c==="Basket"?"🏀":c==="Tennis"?"🎾":"🏈").join(""),
+        matches:parsed.matches?.map(m=>m.teams).join(" · ")||"—",
+        date:new Date().toLocaleDateString("it-IT"),
+        quota:parsed.total_quota?.toFixed(2)||"—",
+        status:"wait",
+        risk:R,
+        n:N,
+      },...h.slice(0,9)]);
     } catch(err) {
-      // Fallback con partite dalla lista reale se disponibili
-      const fallbackMatches = filtered.slice(0,3).map(m => ({
-        teams: m.teams,
-        league: m.league,
-        time: m.time,
-        selection: "1",
-        single_prob: m.home_odds ? Math.round(1/m.home_odds*100) : 60,
-        quota: m.home_odds || 1.80,
-        ai_edge: "+5%",
-        stat_chips: ["Quota live ✓", `1=${m.home_odds||"N/A"}`, `2=${m.away_odds||"N/A"}`, "Analisi AI"]
-      }));
-      const fb = fallbackMatches.length > 0 ? fallbackMatches : [
-        {teams:"Milan vs Juventus",league:"Serie A",time:"20:45",selection:"1X",single_prob:72,quota:1.65,ai_edge:"+7%",stat_chips:["Forma 4/5 ✓","xG 1.8","H2H 3-1","Edge +7%"]},
-        {teams:"Real Madrid vs Atletico",league:"La Liga",time:"21:00",selection:"Over 2.5",single_prob:68,quota:1.85,ai_edge:"+6%",stat_chips:["xG 2.4","H2H Over","Edge +6%"]},
+      // Fallback: use real matches with correct odds range
+      const fallbackMatches = shuffled
+        .filter(m => {
+          const q = R==="safe" ? (m.home_odds||99) : R==="balanced" ? (m.home_odds||0) : (m.away_odds||0);
+          return R==="safe" ? q<=1.60 && q>=1.05 : R==="balanced" ? q>=1.61&&q<=2.00 : q>=2.01;
+        })
+        .slice(0, N)
+        .map(m => ({
+          teams: m.teams, league: m.league, time: m.time,
+          selection: R==="safe"?"1 (favorito)":R==="balanced"?"1":m.away_odds>2?"2":"Over 2.5",
+          single_prob: m.home_odds ? Math.round(100/m.home_odds) : 60,
+          quota: R==="safe"?(m.home_odds||1.40):R==="balanced"?(m.home_odds||1.75):(m.away_odds||2.50),
+          ai_edge:"+5%",
+          stat_chips:["Quota live ✓","Analisi base","Edge stimato +5%"]
+        }));
+      const fb = fallbackMatches.length >= N ? fallbackMatches.slice(0,N) : [
+        {teams:"Esempio A vs B",league:"Serie A",time:"20:45",selection:"1",single_prob:65,quota:R==="safe"?1.40:R==="balanced"?1.75:2.50,ai_edge:"+5%",stat_chips:["Esempio"]},
       ];
-      const totalQ = fb.reduce((acc,m)=>acc*(m.quota||1.5),1);
-      const fallback = {
-        matches: fb,
-        total_quota: parseFloat(totalQ.toFixed(2)),
-        estimated_prob: Math.round(fb.reduce((acc,m)=>acc*(m.single_prob/100),1)*100),
-        reasoning: isIt
-          ? "Analisi basata sulle quote live disponibili. Le partite sono state selezionate in base alle quote dei bookmaker e all'analisi statistica delle squadre. Si consiglia di verificare le ultime notizie sugli infortuni prima di scommettere."
-          : "Analysis based on available live odds. Matches selected based on bookmaker odds and team statistical analysis. Check latest injury news before betting."
-      };
-      setResult(fallback);
-      animateReasoning(fallback.reasoning);
+      const tq = fb.reduce((a,m)=>a*(m.quota||1.5),1);
+      const ep = fb.reduce((a,m)=>a*(m.single_prob/100),1)*100;
+      setResult({matches:fb,total_quota:parseFloat(tq.toFixed(2)),estimated_prob:parseFloat(ep.toFixed(1)),reasoning:isIt?"Analisi basata sulle quote live. Verifica gli infortuni prima di scommettere.":"Analysis based on live odds. Check injuries before betting."});
+      animateReasoning(isIt?"Analisi basata sulle quote live. Verifica gli infortuni prima di scommettere.":"Analysis based on live odds. Check injuries before betting.");
     } finally { setLoading(false); }
   };
 
@@ -1154,8 +1126,7 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
         <nav className="sidebar-nav">
           {t.nav.slice(0,3).map((item,i)=>(
             <div key={i} className={"sidebar-item"+(activeNav===i?" active":"")} onClick={()=>setActiveNav(i)}>
-              <span style={{fontSize:15}}>{t.navEmoji[i]}</span>
-              <span>{item}</span>
+              <span style={{fontSize:15}}>{t.navEmoji[i]}</span><span>{item}</span>
             </div>
           ))}
         </nav>
@@ -1163,8 +1134,7 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
         <nav className="sidebar-nav">
           {t.nav.slice(3).map((item,i)=>(
             <div key={i+3} className={"sidebar-item"+(activeNav===i+3?" active":"")} onClick={()=>setActiveNav(i+3)}>
-              <span style={{fontSize:15}}>{t.navEmoji[i+3]}</span>
-              <span>{item}</span>
+              <span style={{fontSize:15}}>{t.navEmoji[i+3]}</span><span>{item}</span>
             </div>
           ))}
         </nav>
@@ -1199,6 +1169,7 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
         {activeNav===2 && <DashWins lang={lang}/>}
 
         {activeNav!==2 && (<>
+          {/* Stats bar */}
           <div className="stats-bar">
             {[{v:"24",l:t.stats[0],tr:"+3",up:true},{v:"16",l:t.stats[1],tr:"+1",up:true},{v:"67%",l:t.stats[2],tr:"+2%",up:true},{v:"6.8x",l:t.stats[3],tr:"-0.4",up:false}].map((s,i)=>(
               <div className="stat-card" key={i}>
@@ -1209,136 +1180,129 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
             ))}
           </div>
 
-          {/* ── TODAY'S MATCHES SECTION ── */}
+          {/* Today Matches */}
           <TodayMatches lang={lang} onMatchesLoaded={setTodayMatches}/>
 
-          {/* ── GENERATOR ── */}
+          {/* Generator */}
           <div className="generator-card">
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
               <div style={{fontFamily:"var(--display)",fontSize:20,letterSpacing:1,color:"white"}}>{t.genTitle}</div>
-              <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)"}}>
-                {todayMatches.length > 0
-                  ? `✓ ${todayMatches.length} ${isIt?"partite reali caricate":"real matches loaded"}`
-                  : isIt?"Analisi 40+ statistiche":"40+ stats analyzed"}
+              <div style={{fontSize:10,color:todayMatches.length>0?"var(--green)":"var(--muted2)",fontFamily:"var(--mono)"}}>
+                {todayMatches.length>0?`✓ ${todayMatches.length} partite caricate`:"Nessuna partita"}
               </div>
             </div>
-            <div className="gen-top">
-              <div>
-                <span className="label-text">{isIt?"Sport (puoi selezionarne più di uno)":"Sports (select multiple)"}</span>
-                <div className="sport-pills" style={{marginTop:8}}>
-                  <div
-                    className={"sport-pill"+(sports.size===0?" active":"")}
-                    onClick={()=>setSports(new Set())}
-                    style={{borderColor:sports.size===0?"var(--cyan)":"var(--border)"}}
-                  >
-                    🌍 {isIt?"Tutti":"All"}
-                  </div>
-                  {t.sports.map((s,i)=>(
-                    <div key={i}
-                      className={"sport-pill"+(sports.has(i)?" active":"")}
-                      onClick={()=>{
-                        setSports(prev => {
-                          const next = new Set(prev);
-                          if(next.has(i)) next.delete(i); else next.add(i);
-                          return next;
-                        });
-                      }}
-                      style={{
-                        borderColor: sports.has(i) ? "var(--cyan)" : "var(--border)",
-                        background: sports.has(i) ? "rgba(0,212,255,0.1)" : "var(--card2)",
-                        color: sports.has(i) ? "var(--cyan)" : "var(--muted2)",
-                        position:"relative"
-                      }}
-                    >
-                      {t.sportEmoji[i]} {s}
-                      {sports.has(i) && <span style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:"50%",background:"var(--cyan)",color:"#05080f",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>✓</span>}
-                    </div>
-                  ))}
-                </div>
-                {sports.size > 1 && (
-                  <div style={{marginTop:8,fontSize:11,color:"var(--cyan)",fontFamily:"var(--mono)"}}>
-                    ✓ {isIt?"Schedina mista:":"Mixed bet:"} {[...sports].map(i=>t.sportEmoji[i]).join(" ")} {[...sports].map(i=>t.sports[i]).join(" + ")}
-                  </div>
-                )}
+
+            {/* Sport multi-select */}
+            <div style={{marginBottom:20}}>
+              <span className="label-text">{isIt?"Sport (selezione multipla per schedina mista)":"Sports (multi-select for mixed bet)"}</span>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
+                <button
+                  onClick={()=>setSelectedSports(new Set(availableCats.length>0?availableCats:["Calcio","Basket","Football","Hockey","Baseball","MMA"]))}
+                  style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",
+                    background:selectedSports.size>=availableCats.length?"rgba(0,212,255,0.1)":"var(--card2)",
+                    borderColor:selectedSports.size>=availableCats.length?"var(--cyan)":"var(--border)",
+                    color:selectedSports.size>=availableCats.length?"var(--cyan)":"var(--muted2)"}}>
+                  🌍 {isIt?"Tutti":"All"}
+                </button>
+                {(availableCats.length>0?availableCats:["Calcio","Basket","Football","Hockey","Baseball","MMA"]).map(cat=>{
+                  const emoji = cat==="Calcio"?"⚽":cat==="Basket"?"🏀":cat==="Tennis"?"🎾":cat==="Football"?"🏈":cat==="Hockey"?"🏒":cat==="Baseball"?"⚾":"🥊";
+                  const active = selectedSports.has(cat);
+                  return (
+                    <button key={cat} onClick={()=>toggleSport(cat)}
+                      style={{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",position:"relative",
+                        background:active?"rgba(0,212,255,0.1)":"var(--card2)",
+                        borderColor:active?"var(--cyan)":"var(--border)",
+                        color:active?"var(--cyan)":"var(--muted2)"}}>
+                      {emoji} {cat}
+                      {active&&<span style={{position:"absolute",top:-5,right:-5,width:14,height:14,borderRadius:"50%",background:"var(--cyan)",color:"#05080f",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>✓</span>}
+                    </button>
+                  );
+                })}
               </div>
-              <div>
-                <span className="label-text">{t.risk}</span>
-                <div className="risk-grid">
-                  {t.risks.map(r=>(
-                    <div key={r.id} className={"risk-card-btn r-"+r.id+(risk===r.id?" active":"")} onClick={()=>setRisk(r.id)}>
-                      <div style={{fontSize:18,marginBottom:3}}>{r.emoji}</div>
-                      <div style={{fontSize:11,fontWeight:700,color:"white"}}>{r.name}</div>
-                      <div style={{fontSize:9,color:"var(--muted2)",marginTop:1}}>{r.sub}</div>
-                    </div>
-                  ))}
-                </div>
+              {selectedSports.size>1&&<div style={{marginTop:8,fontSize:11,color:"var(--cyan)",fontFamily:"var(--mono)"}}>
+                🎯 {isIt?"Schedina mista":"Mixed bet"}: {[...selectedSports].join(" + ")}
+              </div>}
+            </div>
+
+            {/* Risk */}
+            <div style={{marginBottom:20}}>
+              <span className="label-text">{t.risk}</span>
+              <div className="risk-grid" style={{marginTop:10}}>
+                {Object.entries(RISK_CONFIG).map(([id,rc])=>(
+                  <div key={id} className={"risk-card-btn r-"+id+(risk===id?" active":"")} onClick={()=>setRisk(id)}
+                    style={{borderColor:risk===id?rc.color:"var(--border)"}}>
+                    <div style={{fontSize:18,marginBottom:3}}>{id==="safe"?"🟢":id==="balanced"?"🟡":"🔴"}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:"white"}}>{rc.label}</div>
+                    <div style={{fontSize:9,color:"var(--muted2)",marginTop:2}}>{rc.desc}</div>
+                  </div>
+                ))}
               </div>
             </div>
+
             {/* Numero partite */}
             <div style={{marginBottom:20}}>
-              <span className="label-text">{isIt?"Numero partite nella schedina":"Number of matches in bet"}</span>
-              <div style={{display:"flex",alignItems:"center",gap:16,marginTop:10}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,background:"var(--card2)",border:"1px solid var(--border2)",borderRadius:12,padding:"8px 16px"}}>
-                  <button onClick={()=>setNumMatches(n=>Math.max(1,n-1))} style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
-                  <span style={{fontFamily:"var(--display)",fontSize:28,color:"var(--cyan)",minWidth:32,textAlign:"center",letterSpacing:1}}>{numMatches}</span>
-                  <button onClick={()=>setNumMatches(n=>Math.min(25,n+1))} style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+              <span className="label-text">{isIt?"Numero partite nella schedina":"Number of matches"}</span>
+              <div style={{display:"flex",alignItems:"center",gap:14,marginTop:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,background:"var(--card2)",border:"1px solid var(--border2)",borderRadius:12,padding:"8px 16px"}}>
+                  <button onClick={()=>setNumMatches(n=>Math.max(1,n-1))}
+                    style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:18,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                  <span style={{fontFamily:"var(--display)",fontSize:32,color:"var(--cyan)",minWidth:36,textAlign:"center"}}>{numMatches}</span>
+                  <button onClick={()=>setNumMatches(n=>Math.min(25,n+1))}
+                    style={{width:28,height:28,borderRadius:8,border:"1px solid var(--border2)",background:"var(--card)",color:"var(--text)",fontSize:18,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                 </div>
-                <div style={{display:"flex",gap:6}}>
-                  {[1,3,5,10,15,25].map(n=>(
-                    <button key={n} onClick={()=>setNumMatches(n)} style={{padding:"5px 10px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",background:numMatches===n?"rgba(0,212,255,0.1)":"var(--card2)",borderColor:numMatches===n?"var(--cyan)":"var(--border)",color:numMatches===n?"var(--cyan)":"var(--muted2)"}}>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {[1,2,3,5,8,10,15,20,25].map(n=>(
+                    <button key={n} onClick={()=>setNumMatches(n)}
+                      style={{padding:"5px 10px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",
+                        background:numMatches===n?"rgba(0,212,255,0.1)":"var(--card2)",
+                        borderColor:numMatches===n?"var(--cyan)":"var(--border)",
+                        color:numMatches===n?"var(--cyan)":"var(--muted2)"}}>
                       {n}
                     </button>
                   ))}
                 </div>
-                <span style={{fontSize:11,color:"var(--muted2)"}}>
-                  {isIt?`partite selezionate`:`matches selected`}
-                </span>
               </div>
             </div>
 
+            {/* Sliders */}
             <div style={{marginBottom:20}}>
               <div className="slider-row">
                 <span className="slider-lbl">🎯 {t.prob}</span>
-                <input type="range" min={10} max={90} value={prob} onChange={e=>setProb(+e.target.value)}/>
+                <input type="range" min={5} max={95} value={prob} onChange={e=>setProb(+e.target.value)}/>
                 <span className="slider-val" style={{color:probColor}}>{prob}%</span>
               </div>
               <div className="slider-row">
                 <span className="slider-lbl">💰 {t.quota}</span>
-                <input type="range" min={1.5} max={100} step={0.5} value={quota} onChange={e=>setQuota(+e.target.value)}/>
+                <input type="range" min={1.1} max={500} step={0.5} value={quota} onChange={e=>setQuota(+e.target.value)}/>
                 <span className="slider-val" style={{color:"var(--gold)"}}>{quota}x</span>
               </div>
             </div>
-            {risk==="high" && (
-              <div className="premium-lock">
-                <div style={{fontSize:12,color:"var(--gold)",fontWeight:600}}>🔐 {t.premiumMsg}</div>
-                <button className="upgrade-btn">{t.upgrade} →</button>
-              </div>
-            )}
-            <button className="gen-btn" onClick={generate} disabled={loading||risk==="high"}>
+
+            <button className="gen-btn" onClick={generate} disabled={loading}>
               {loading?t.generating:t.genBtn}
             </button>
           </div>
 
-          {loading && (
-            <div className="result-wrap">
-              <div style={{textAlign:"center",padding:36}}>
-                <div className="spinner"/>
-                <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--muted2)"}}>{t.generating}</div>
-                <div style={{fontSize:11,color:"var(--muted)",marginTop:8}}>
-                  {isIt?"Analisi partite reali → Calcolo edge → Ottimizzazione":"Analyzing real matches → Edge calc → Optimization"}
-                </div>
+          {/* Loading */}
+          {loading&&(
+            <div className="result-wrap" style={{textAlign:"center",padding:40}}>
+              <div className="spinner"/>
+              <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--muted2)"}}>{t.generating}</div>
+              <div style={{fontSize:11,color:"var(--muted)",marginTop:8}}>
+                {isIt?`Analisi ${numMatches} selezioni in fascia ${RISK_CONFIG[risk].label}...`:`Analyzing ${numMatches} picks in range ${RISK_CONFIG[risk].label}...`}
               </div>
             </div>
           )}
 
-          {result && !loading && (
+          {/* Result */}
+          {result&&!loading&&(
             <div className="result-wrap">
               <div className="result-top">
                 <div style={{fontSize:14,fontWeight:700,color:"white"}}>📋 {t.result}</div>
                 <div className="result-pills">
-                  <span className="result-pill rp-green">~{result.estimated_prob}% prob</span>
-                  <span className="result-pill rp-gold">quota {result.total_quota?.toFixed(2)}x</span>
-                  <span className="result-pill rp-cyan">{result.matches?.length} {isIt?"partite":"matches"}</span>
+                  <span className="result-pill rp-green">~{result.estimated_prob?.toFixed(0)||"?"}% prob</span>
+                  <span className="result-pill rp-gold">quota {result.total_quota?.toFixed(2)||"?"}x</span>
+                  <span className="result-pill rp-cyan">{result.matches?.length||0} {isIt?"partite":"matches"}</span>
                 </div>
               </div>
               <div className="match-list">
@@ -1352,15 +1316,15 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{textAlign:"right"}}>
                           <div style={{fontSize:12,fontWeight:700,color:"var(--cyan)"}}>{m.selection}</div>
-                          <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:1}}>{m.single_prob}% · {m.ai_edge||""}</div>
+                          <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:1}}>{m.single_prob}% · {m.ai_edge}</div>
                         </div>
                         <div className="match-quota">{m.quota}</div>
                       </div>
                     </div>
-                    {m.stat_chips?.length>0 && (
+                    {m.stat_chips?.length>0&&(
                       <div className="match-stats-row">
                         {m.stat_chips.map((ch,j)=>{
-                          const cls=ch.includes("✓")?"msc-green":ch.includes("OUT")?"msc-red":ch.includes("Edge")?"msc-cyan":"msc-gold";
+                          const cls=ch.includes("✓")?"msc-green":ch.includes("OUT")?"msc-red":ch.includes("Edge")||ch.includes("Reale")?"msc-cyan":"msc-gold";
                           return <span key={j} className={"match-stat-chip "+cls}>{ch}</span>;
                         })}
                       </div>
@@ -1369,11 +1333,13 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
                 ))}
               </div>
               <div className="ai-reasoning">
-                <div className="ai-reasoning-label">🧠 {t.aiLabel} — {isIt?"Analisi Statistica Reale":"Real Statistical Analysis"}</div>
+                <div className="ai-reasoning-label">🧠 {t.aiLabel}</div>
                 <div className={"ai-reasoning-text"+(typing?" cursor":"")}>{reasoning}</div>
               </div>
               <div className="result-stats">
-                {[{v:`${result.estimated_prob}%`,l:isIt?"Probabilità":"Probability",c:"var(--green)"},{v:`${result.total_quota?.toFixed(2)}x`,l:isIt?"Quota Totale":"Total Odds",c:"var(--gold)"},{v:result.matches?.length,l:isIt?"Partite":"Matches",c:"var(--cyan)"}].map((s,i)=>(
+                {[{v:`${result.estimated_prob?.toFixed(0)||"?"}%`,l:isIt?"Probabilità":"Probability",c:"var(--green)"},
+                  {v:`${result.total_quota?.toFixed(2)||"?"}x`,l:isIt?"Quota Totale":"Total Odds",c:"var(--gold)"},
+                  {v:result.matches?.length||0,l:isIt?"Partite":"Matches",c:"var(--cyan)"}].map((s,i)=>(
                   <div className="rs-box" key={i}>
                     <div style={{fontFamily:"var(--display)",fontSize:24,color:s.c,marginBottom:2}}>{s.v}</div>
                     <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>{s.l}</div>
@@ -1383,27 +1349,28 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
             </div>
           )}
 
-          {result && !loading && <div style={{marginTop:16}}><AdInline idx={3} lang={lang}/></div>}
+          {result&&!loading&&<div style={{marginTop:16}}><AdInline idx={3} lang={lang}/></div>}
 
+          {/* History */}
           <div style={{marginTop:24}}>
             <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:14}}>{t.histTitle}</div>
             {history.length===0
-              ? <div style={{color:"var(--muted2)",fontSize:13,textAlign:"center",padding:28}}>{t.histEmpty}</div>
-              : <div className="history-list">
-                  {history.map(h=>(
-                    <div className="history-item" key={h.id}>
-                      <span style={{fontSize:17}}>{h.sport}</span>
-                      <div className="history-info">
-                        <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{h.matches}</div>
-                        <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{h.date}</div>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:12}}>
-                        <span style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
-                        <span className={"history-status hs-wait"}>{isIt?"In attesa":"Pending"}</span>
-                      </div>
+              ?<div style={{color:"var(--muted2)",fontSize:13,textAlign:"center",padding:28}}>{t.histEmpty}</div>
+              :<div className="history-list">
+                {history.map(h=>(
+                  <div className="history-item" key={h.id}>
+                    <span style={{fontSize:16}}>{h.sport}</span>
+                    <div className="history-info">
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{h.matches}</div>
+                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{h.date} · {h.n} {isIt?"partite":"picks"} · {h.risk?.toUpperCase()}</div>
                     </div>
-                  ))}
-                </div>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <span style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
+                      <span className="history-status hs-wait">{isIt?"In attesa":"Pending"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             }
           </div>
         </>)}
