@@ -928,7 +928,7 @@ function DashWins({ lang }) {
 function Dashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang].dash;
   const isIt = lang==="it";
-  const [sport, setSport] = useState(0);
+  const [sports, setSports] = useState(new Set([0,1,2,3])); // multi-select
   const [risk, setRisk] = useState("balanced");
   const [prob, setProb] = useState(60);
   const [quota, setQuota] = useState(8);
@@ -961,23 +961,23 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const generate = async () => {
     setLoading(true); setResult(null); setReasoning("");
 
-    // ── Prendi TUTTE le partite reali caricate, filtra per sport selezionato ──
-    const sportCat = t.sports[sport];
-    const filtered = todayMatches.filter(m => {
-      if (sportCat==="Calcio"||sportCat==="Football") return m.cat==="Calcio";
-      if (sportCat==="Basket"||sportCat==="Basketball") return m.cat==="Basket";
-      if (sportCat==="Tennis") return m.cat==="Tennis";
-      return true; // "Tutti" o Formula 1 → tutte
+    // ── Filtra per sport selezionati (multi) ──
+    const selectedCats = new Set();
+    sports.forEach(i => {
+      const s = t.sports[i];
+      if(s==="Calcio"||s==="Football") selectedCats.add("Calcio");
+      else if(s==="Basket"||s==="Basketball") selectedCats.add("Basket");
+      else if(s==="Tennis") selectedCats.add("Tennis");
+      else if(s==="Formula 1") selectedCats.add("Formula 1");
+      else selectedCats.add(s);
     });
+    const filtered = sports.size === 0
+      ? todayMatches
+      : todayMatches.filter(m => selectedCats.has(m.cat));
+    const sportCat = sports.size === 0 ? "Tutti gli sport" :
+      [...sports].map(i => t.sports[i]).join(", ");
 
-    // ── Costruisci lista dettagliata per l'AI con le quote reali ──
-    const matchList = filtered.slice(0, 20).map((m, idx) => {
-      const impliedHome = m.home_odds ? (1/m.home_odds*100).toFixed(1) : "N/A";
-      const impliedDraw = m.draw_odds ? (1/m.draw_odds*100).toFixed(1) : "N/A";
-      const impliedAway = m.away_odds ? (1/m.away_odds*100).toFixed(1) : "N/A";
-      return `${idx+1}. ${m.teams} | ${m.league} | ore ${m.time}
-   Quote: 1=${m.home_odds||"N/A"} (imp.${impliedHome}%) X=${m.draw_odds||"-"} (imp.${impliedDraw}%) 2=${m.away_odds||"N/A"} (imp.${impliedAway}%)`;
-    }).join("\n");
+    // matchList built later with shuffle for variety
 
     const hasRealMatches = filtered.length > 0;
     const todayDate = new Date().toLocaleDateString("it-IT", {weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -1026,7 +1026,18 @@ Obiettivo: costruire una schedina con quota totale alta ma con LOGICA statistica
     const minQ = rp.minOdds;
     const maxQ = rp.maxOdds;
 
-    const prompt = `Sei BetAI, analista esperto di scommesse sportive. Devi costruire una schedina rispettando RIGIDAMENTE i parametri.
+    // Seed casuale per forzare variazione ogni generazione
+    const seed = Math.random().toString(36).slice(2,8).toUpperCase();
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+    const matchListVaried = shuffled.slice(0, 20).map((m, idx) => {
+      const impliedHome = m.home_odds ? (1/m.home_odds*100).toFixed(1) : "N/A";
+      const impliedDraw = m.draw_odds ? (1/m.draw_odds*100).toFixed(1) : "N/A";
+      const impliedAway = m.away_odds ? (1/m.away_odds*100).toFixed(1) : "N/A";
+      return `${idx+1}. ${m.teams} | ${m.league} | ore ${m.time}
+   Quote: 1=${m.home_odds||"N/A"} (imp.${impliedHome}%) X=${m.draw_odds||"-"} (imp.${impliedDraw}%) 2=${m.away_odds||"N/A"} (imp.${impliedAway}%)`;
+    }).join("\n");
+
+    const prompt = `[ID:${seed}] Sei BetAI, analista esperto di scommesse sportive. Devi costruire una schedina rispettando RIGIDAMENTE i parametri.
 
 DATA: ${todayDate} | LINGUA: ${isIt?"Italiano":"Inglese"}
 
@@ -1037,7 +1048,7 @@ DATA: ${todayDate} | LINGUA: ${isIt?"Italiano":"Inglese"}
 - LIVELLO RISCHIO: ${risk.toUpperCase()}
 
 === PARTITE DISPONIBILI (quote reali bookmaker) ===
-${hasRealMatches ? matchList : "Nessuna partita reale — inventa "+numMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)}
+${hasRealMatches ? matchListVaried : "Nessuna partita reale — inventa "+numMatches+" partite verosimili con quote nella fascia "+minQ+"-"+(maxQ===99?"20":maxQ)+". ID generazione: "+seed}
 
 === COME ANALIZZARE OGNI PARTITA ===
 Per ogni partita della lista sopra:
@@ -1053,6 +1064,11 @@ Per ogni partita della lista sopra:
 
 === STRATEGIA ${risk.toUpperCase()} ===
 ${rp.strategy}
+
+=== IMPORTANTE: OGNI GENERAZIONE DEVE ESSERE DIVERSA ===
+ID sessione: ${seed} — usa questo ID come seme mentale per variare le tue scelte.
+Non ripetere le stesse selezioni della generazione precedente.
+Esplora mercati diversi, orari diversi, campionati diversi ogni volta.
 
 === REGOLA FINALE ===
 Costruisci la schedina con ESATTAMENTE ${numMatches} selezioni, TUTTE con quota tra ${minQ} e ${maxQ===99?"(nessun limite superiore)":maxQ}.
@@ -1083,7 +1099,7 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
       animateReasoning(parsed.reasoning || "");
       setHistory(h => [{
         id: Date.now(),
-        sport: t.sportEmoji[sport],
+        sport: [...sports].map(i=>t.sportEmoji[i]).join('')||'🎯',
         matches: parsed.matches?.map(m => m.teams).join(" + ") || "—",
         date: new Date().toLocaleDateString("it-IT"),
         quota: parsed.total_quota?.toFixed(2) || quota,
@@ -1202,14 +1218,42 @@ Calcola prob_combinata = prodotto di tutte le prob singole / 100^(n-1).
             </div>
             <div className="gen-top">
               <div>
-                <span className="label-text">{t.sport}</span>
-                <div className="sport-pills">
+                <span className="label-text">{isIt?"Sport (puoi selezionarne più di uno)":"Sports (select multiple)"}</span>
+                <div className="sport-pills" style={{marginTop:8}}>
+                  <div
+                    className={"sport-pill"+(sports.size===0?" active":"")}
+                    onClick={()=>setSports(new Set())}
+                    style={{borderColor:sports.size===0?"var(--cyan)":"var(--border)"}}
+                  >
+                    🌍 {isIt?"Tutti":"All"}
+                  </div>
                   {t.sports.map((s,i)=>(
-                    <div key={i} className={"sport-pill"+(sport===i?" active":"")} onClick={()=>setSport(i)}>
+                    <div key={i}
+                      className={"sport-pill"+(sports.has(i)?" active":"")}
+                      onClick={()=>{
+                        setSports(prev => {
+                          const next = new Set(prev);
+                          if(next.has(i)) next.delete(i); else next.add(i);
+                          return next;
+                        });
+                      }}
+                      style={{
+                        borderColor: sports.has(i) ? "var(--cyan)" : "var(--border)",
+                        background: sports.has(i) ? "rgba(0,212,255,0.1)" : "var(--card2)",
+                        color: sports.has(i) ? "var(--cyan)" : "var(--muted2)",
+                        position:"relative"
+                      }}
+                    >
                       {t.sportEmoji[i]} {s}
+                      {sports.has(i) && <span style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:"50%",background:"var(--cyan)",color:"#05080f",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>✓</span>}
                     </div>
                   ))}
                 </div>
+                {sports.size > 1 && (
+                  <div style={{marginTop:8,fontSize:11,color:"var(--cyan)",fontFamily:"var(--mono)"}}>
+                    ✓ {isIt?"Schedina mista:":"Mixed bet:"} {[...sports].map(i=>t.sportEmoji[i]).join(" ")} {[...sports].map(i=>t.sports[i]).join(" + ")}
+                  </div>
+                )}
               </div>
               <div>
                 <span className="label-text">{t.risk}</span>
