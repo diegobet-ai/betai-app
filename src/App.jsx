@@ -6,180 +6,94 @@ import { useState, useEffect, useCallback } from "react";
 const SUPABASE_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
 
-const sb = {
-  headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer "+SUPABASE_KEY, "Content-Type": "application/json" },
-  
-  async signUp(email, password, name) {
-    const r = await fetch(SUPABASE_URL+"/auth/v1/signup", {
-      method:"POST", headers:this.headers,
-      body: JSON.stringify({ email, password, data:{ name } })
-    });
-    return r.json();
-  },
-
-  async signIn(email, password) {
-    const r = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password", {
-      method:"POST", headers:this.headers,
-      body: JSON.stringify({ email, password })
-    });
-    return r.json();
-  },
-
-  async signOut(token) {
-    await fetch(SUPABASE_URL+"/auth/v1/logout", {
-      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token}
-    });
-  },
-
-  async getProfile(userId, token) {
-    const r = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+userId+"&select=*", {
-      headers:{...this.headers, "Authorization":"Bearer "+token}
-    });
-    const d = await r.json();
-    return Array.isArray(d) ? d[0] : null;
-  },
-
-  async updateProfile(userId, token, data) {
-    await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+userId, {
-      method:"PATCH", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=minimal"},
-      body: JSON.stringify(data)
-    });
-  },
-
-  async saveSchedina(token, data) {
-    const r = await fetch(SUPABASE_URL+"/rest/v1/schedine", {
-      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=representation"},
-      body: JSON.stringify(data)
-    });
-    return r.json();
-  },
-
-  async getSchedine(userId, token) {
-    const r = await fetch(SUPABASE_URL+"/rest/v1/schedine?user_id=eq."+userId+"&order=created_at.desc&limit=50", {
-      headers:{...this.headers, "Authorization":"Bearer "+token}
-    });
-    return r.json();
-  },
-
-  async updateSchedina(id, token, data) {
-    await fetch(SUPABASE_URL+"/rest/v1/schedine?id=eq."+id, {
-      method:"PATCH", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=minimal"},
-      body: JSON.stringify(data)
-    });
-  },
-
-  getSession() {
-    try { return JSON.parse(localStorage.getItem("betai_session")||"null"); } catch { return null; }
-  },
-  setSession(s) { localStorage.setItem("betai_session", JSON.stringify(s)); },
-  clearSession() { localStorage.removeItem("betai_session"); }
-};
-
-// ═══════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════
-const ODDS_API_KEY = "cf8b575dd9664b4917486edb7c515b39";
-const ODDS_BASE    = "https://api.the-odds-api.com/v4";
-
-// ── SUPABASE ──
 const SUPA_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
 
-const supa = {
-  headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+SUPA_KEY, "Content-Type": "application/json" },
-  
+// Supabase REST client — always sends both apikey and Authorization
+function supaHeaders(token) {
+  return {
+    "apikey": SUPA_ANON,
+    "Authorization": "Bearer " + (token || SUPA_ANON),
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+  };
+}
+
+const sb = {
   async signUp(email, password, name) {
     const r = await fetch(SUPA_URL+"/auth/v1/signup", {
-      method:"POST", headers:{"apikey":SUPA_KEY,"Content-Type":"application/json"},
-      body: JSON.stringify({ email, password, data:{ name } })
+      method:"POST",
+      headers:{"apikey":SUPA_ANON,"Content-Type":"application/json"},
+      body:JSON.stringify({email,password,data:{name}})
     });
     return r.json();
   },
 
   async signIn(email, password) {
     const r = await fetch(SUPA_URL+"/auth/v1/token?grant_type=password", {
-      method:"POST", headers:{"apikey":SUPA_KEY,"Content-Type":"application/json"},
-      body: JSON.stringify({ email, password })
+      method:"POST",
+      headers:{"apikey":SUPA_ANON,"Content-Type":"application/json"},
+      body:JSON.stringify({email,password})
     });
     return r.json();
   },
 
   async signOut(token) {
     await fetch(SUPA_URL+"/auth/v1/logout", {
-      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token}
-    });
+      method:"POST",
+      headers:supaHeaders(token)
+    }).catch(()=>{});
   },
 
   async getProfile(userId, token) {
     const r = await fetch(SUPA_URL+"/rest/v1/profiles?id=eq."+userId+"&select=*", {
-      headers:{...this.headers, "Authorization":"Bearer "+token}
+      headers:supaHeaders(token)
     });
     const d = await r.json();
-    return d[0] || null;
+    return Array.isArray(d) ? d[0] : null;
   },
 
-  async updateProfile(userId, token, data) {
+  async upsertProfile(userId, token, data) {
     await fetch(SUPA_URL+"/rest/v1/profiles?id=eq."+userId, {
-      method:"PATCH", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=minimal"},
-      body: JSON.stringify(data)
+      method:"PATCH",
+      headers:{...supaHeaders(token),"Prefer":"return=minimal"},
+      body:JSON.stringify(data)
     });
   },
 
-  async saveSchedina(userId, token, schedina) {
+  async saveSchedina(userId, token, data) {
     const r = await fetch(SUPA_URL+"/rest/v1/schedine", {
-      method:"POST", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=representation"},
-      body: JSON.stringify({ user_id:userId, ...schedina })
+      method:"POST",
+      headers:supaHeaders(token),
+      body:JSON.stringify({...data, user_id:userId})
     });
     return r.json();
   },
 
   async getSchedine(userId, token) {
-    const r = await fetch(SUPA_URL+"/rest/v1/schedine?user_id=eq."+userId+"&order=created_at.desc&limit=50", {
-      headers:{...this.headers,"Authorization":"Bearer "+token}
+    const r = await fetch(SUPA_URL+"/rest/v1/schedine?user_id=eq."+userId+"&order=created_at.desc&limit=100&select=*", {
+      headers:supaHeaders(token)
     });
     return r.json();
   },
 
-  async updateEsito(schedId, token, esito) {
-    await fetch(SUPA_URL+"/rest/v1/schedine?id=eq."+schedId, {
-      method:"PATCH", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=minimal"},
-      body: JSON.stringify({ esito })
+  async updateSchedina(id, token, data) {
+    await fetch(SUPA_URL+"/rest/v1/schedine?id=eq."+id, {
+      method:"PATCH",
+      headers:{...supaHeaders(token),"Prefer":"return=minimal"},
+      body:JSON.stringify(data)
     });
   },
+
+  getSession() {
+    try { return JSON.parse(localStorage.getItem("betai_sess")||"null"); } catch { return null; }
+  },
+  setSession(s) { localStorage.setItem("betai_sess", JSON.stringify(s)); },
+  clearSession() { localStorage.removeItem("betai_sess"); }
 };
 
-// Sport keys per The Odds API — sempre attivi
-const SPORT_KEYS = [
-  "soccer_italy_serie_a",
-  "soccer_uefa_champs_league",
-  "soccer_epl",
-  "soccer_spain_la_liga",
-  "soccer_germany_bundesliga",
-  "soccer_france_ligue_one",
-  "soccer_uefa_europa_league",
-  "soccer_conmebol_copa_libertadores",
-  "basketball_nba",
-  "americanfootball_nfl",
-  "icehockey_nhl",
-  "baseball_mlb",
-  "mma_mixed_martial_arts",
-];
-
-const SPORT_LABELS = {
-  soccer_italy_serie_a:              { name:"Serie A",          emoji:"⚽", cat:"Calcio" },
-  soccer_uefa_champs_league:         { name:"Champions League", emoji:"⚽", cat:"Calcio" },
-  soccer_epl:                        { name:"Premier League",   emoji:"⚽", cat:"Calcio" },
-  soccer_spain_la_liga:              { name:"La Liga",          emoji:"⚽", cat:"Calcio" },
-  soccer_germany_bundesliga:         { name:"Bundesliga",       emoji:"⚽", cat:"Calcio" },
-  soccer_france_ligue_one:           { name:"Ligue 1",          emoji:"⚽", cat:"Calcio" },
-  soccer_uefa_europa_league:         { name:"Europa League",    emoji:"⚽", cat:"Calcio" },
-  soccer_conmebol_copa_libertadores: { name:"Copa Libertadores",emoji:"⚽", cat:"Calcio" },
-  basketball_nba:                    { name:"NBA",              emoji:"🏀", cat:"Basket" },
-  americanfootball_nfl:              { name:"NFL",              emoji:"🏈", cat:"Football" },
-  icehockey_nhl:                     { name:"NHL",              emoji:"🏒", cat:"Hockey" },
-  baseball_mlb:                      { name:"MLB",              emoji:"⚾", cat:"Baseball" },
-  mma_mixed_martial_arts:            { name:"MMA",              emoji:"🥊", cat:"MMA" },
-};
+// Keep backward compat alias
+const supa = sb;
 
 // ═══════════════════════════════════════════════════════════
 // STYLES
@@ -1263,7 +1177,7 @@ function ProfilePage({ user, lang, history = [] }) {
 
   const save = async () => {
     if(user?.token && user?.id) {
-      await sb.updateProfile(user.id, user.token, {
+      await sb.upsertProfile(user.id, user.token, {
         default_risk: prefs.defaultRisk,
         default_matches: prefs.defaultMatches,
         email_alerts: prefs.emailAlerts,
@@ -1958,7 +1872,7 @@ function ProfilePage({ user, lang, history = [] }) {
 
   const save = async () => {
     if(user?.token && user?.id) {
-      await sb.updateProfile(user.id, user.token, {
+      await sb.upsertProfile(user.id, user.token, {
         default_risk: prefs.defaultRisk,
         default_matches: prefs.defaultMatches,
         email_alerts: prefs.emailAlerts,
@@ -2478,20 +2392,24 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   // Load schedine from Supabase on mount
   useEffect(()=>{
     if(!user?.token || !user?.id) return;
+    console.log("BetAI: carico schedine per utente", user.id);
     sb.getSchedine(user.id, user.token).then(data=>{
-      if(!Array.isArray(data)) return;
+      console.log("BetAI: schedine ricevute:", data?.length, data);
+      if(!Array.isArray(data)) { console.warn("Schedine non array:", data); return; }
       setHistory(data.map(s=>({
         id: s.id,
-        sport: "⚽",
+        sport: s.sport || "⚽",
         matches: Array.isArray(s.matches) ? s.matches.map(m=>m.teams).join(" | ") : "-",
         date: new Date(s.created_at).toLocaleDateString("it-IT"),
         quota: s.quota_totale?.toFixed(2)||"-",
         status: s.esito||"pending",
         risk: s.risk,
         n: s.num_matches,
+        details: s.matches,
+        reasoning: s.reasoning,
         full: s,
       })));
-    }).catch(()=>{});
+    }).catch(e=>console.error("Schedine error:", e));
   },[user?.id]);
   const [activeNav, setActiveNav] = useState(0);
   const [todayMatches, setTodayMatches] = useState([]);
@@ -2689,7 +2607,7 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
       let savedId = null;
       if (user?.token && user?.id) {
         try {
-          const saved = await sb.saveSchedina(user.token, {...schedEntry, user_id: user.id});
+          const saved = await sb.saveSchedina(user.id, user.token, schedEntry);
           savedId = saved?.[0]?.id || null;
         } catch(e) { console.warn("Salvataggio schedina fallito:", e); }
       }
