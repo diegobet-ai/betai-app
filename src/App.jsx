@@ -1,10 +1,152 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+// ═══════════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
+
+const sb = {
+  headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer "+SUPABASE_KEY, "Content-Type": "application/json" },
+  
+  async signUp(email, password, name) {
+    const r = await fetch(SUPABASE_URL+"/auth/v1/signup", {
+      method:"POST", headers:this.headers,
+      body: JSON.stringify({ email, password, data:{ name } })
+    });
+    return r.json();
+  },
+
+  async signIn(email, password) {
+    const r = await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password", {
+      method:"POST", headers:this.headers,
+      body: JSON.stringify({ email, password })
+    });
+    return r.json();
+  },
+
+  async signOut(token) {
+    await fetch(SUPABASE_URL+"/auth/v1/logout", {
+      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token}
+    });
+  },
+
+  async getProfile(userId, token) {
+    const r = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+userId+"&select=*", {
+      headers:{...this.headers, "Authorization":"Bearer "+token}
+    });
+    const d = await r.json();
+    return Array.isArray(d) ? d[0] : null;
+  },
+
+  async updateProfile(userId, token, data) {
+    await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+userId, {
+      method:"PATCH", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=minimal"},
+      body: JSON.stringify(data)
+    });
+  },
+
+  async saveSchedina(token, data) {
+    const r = await fetch(SUPABASE_URL+"/rest/v1/schedine", {
+      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=representation"},
+      body: JSON.stringify(data)
+    });
+    return r.json();
+  },
+
+  async getSchedine(userId, token) {
+    const r = await fetch(SUPABASE_URL+"/rest/v1/schedine?user_id=eq."+userId+"&order=created_at.desc&limit=50", {
+      headers:{...this.headers, "Authorization":"Bearer "+token}
+    });
+    return r.json();
+  },
+
+  async updateSchedina(id, token, data) {
+    await fetch(SUPABASE_URL+"/rest/v1/schedine?id=eq."+id, {
+      method:"PATCH", headers:{...this.headers, "Authorization":"Bearer "+token, "Prefer":"return=minimal"},
+      body: JSON.stringify(data)
+    });
+  },
+
+  getSession() {
+    try { return JSON.parse(localStorage.getItem("betai_session")||"null"); } catch { return null; }
+  },
+  setSession(s) { localStorage.setItem("betai_session", JSON.stringify(s)); },
+  clearSession() { localStorage.removeItem("betai_session"); }
+};
 
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
 const ODDS_API_KEY = "cf8b575dd9664b4917486edb7c515b39";
 const ODDS_BASE    = "https://api.the-odds-api.com/v4";
+
+// ── SUPABASE ──
+const SUPA_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
+
+const supa = {
+  headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+SUPA_KEY, "Content-Type": "application/json" },
+  
+  async signUp(email, password, name) {
+    const r = await fetch(SUPA_URL+"/auth/v1/signup", {
+      method:"POST", headers:{"apikey":SUPA_KEY,"Content-Type":"application/json"},
+      body: JSON.stringify({ email, password, data:{ name } })
+    });
+    return r.json();
+  },
+
+  async signIn(email, password) {
+    const r = await fetch(SUPA_URL+"/auth/v1/token?grant_type=password", {
+      method:"POST", headers:{"apikey":SUPA_KEY,"Content-Type":"application/json"},
+      body: JSON.stringify({ email, password })
+    });
+    return r.json();
+  },
+
+  async signOut(token) {
+    await fetch(SUPA_URL+"/auth/v1/logout", {
+      method:"POST", headers:{...this.headers, "Authorization":"Bearer "+token}
+    });
+  },
+
+  async getProfile(userId, token) {
+    const r = await fetch(SUPA_URL+"/rest/v1/profiles?id=eq."+userId+"&select=*", {
+      headers:{...this.headers, "Authorization":"Bearer "+token}
+    });
+    const d = await r.json();
+    return d[0] || null;
+  },
+
+  async updateProfile(userId, token, data) {
+    await fetch(SUPA_URL+"/rest/v1/profiles?id=eq."+userId, {
+      method:"PATCH", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=minimal"},
+      body: JSON.stringify(data)
+    });
+  },
+
+  async saveSchedina(userId, token, schedina) {
+    const r = await fetch(SUPA_URL+"/rest/v1/schedine", {
+      method:"POST", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=representation"},
+      body: JSON.stringify({ user_id:userId, ...schedina })
+    });
+    return r.json();
+  },
+
+  async getSchedine(userId, token) {
+    const r = await fetch(SUPA_URL+"/rest/v1/schedine?user_id=eq."+userId+"&order=created_at.desc&limit=50", {
+      headers:{...this.headers,"Authorization":"Bearer "+token}
+    });
+    return r.json();
+  },
+
+  async updateEsito(schedId, token, esito) {
+    await fetch(SUPA_URL+"/rest/v1/schedine?id=eq."+schedId, {
+      method:"PATCH", headers:{...this.headers,"Authorization":"Bearer "+token,"Prefer":"return=minimal"},
+      body: JSON.stringify({ esito })
+    });
+  },
+};
 
 // Sport keys per The Odds API — sempre attivi
 const SPORT_KEYS = [
@@ -622,7 +764,8 @@ function TodayMatches({ lang, onMatchesLoaded }) {
 
   useEffect(() => { fetchMatches(); }, []);
 
-  const leagues = ["Tutti", ...new Set(matches.map(m => m.cat))];
+  const allLeagues = ["Tutti", ...new Set(matches.map(m => m.cat))];
+  const leagues = allLeagues;
   const filtered = activeFilter === "Tutti" ? matches : matches.filter(m => m.cat === activeFilter);
 
   const toggleOdds = (matchId, type, odds) => {
@@ -935,52 +1078,91 @@ function Landing({ onLogin, lang, setLang }) {
 // ═══════════════════════════════════════════════════════════
 function Auth({ onSuccess, onBack, lang }) {
   const t = T[lang].auth;
+  const isIt = lang==="it";
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const handle = () => {
-    if (!email) return;
-    setLoading(true);
-    setTimeout(()=>{ setLoading(false); onSuccess({name:name||email.split("@")[0],email}); },900);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handle = async () => {
+    if (!email || !password) { setError(isIt?"Inserisci email e password":"Enter email and password"); return; }
+    if (tab==="register" && password.length < 6) { setError(isIt?"Password minimo 6 caratteri":"Password min 6 characters"); return; }
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      if (tab==="register") {
+        const res = await sb.signUp(email, password, name||email.split("@")[0]);
+        if (res.error) throw new Error(res.error.message);
+        setSuccess(isIt?"Registrazione completata! Controlla la tua email per confermare l'account.":"Registration complete! Check your email to confirm your account.");
+        setTab("login");
+      } else {
+        const res = await sb.signIn(email, password);
+        if (res.error) {
+          if(res.error.message?.includes("Email not confirmed"))
+            throw new Error(isIt?"Conferma prima la tua email!":"Please confirm your email first!");
+          throw new Error(isIt?"Email o password errati":"Invalid email or password");
+        }
+        sb.setSession({ access_token: res.access_token, user: res.user });
+        const profile = await sb.getProfile(res.user.id, res.access_token);
+        onSuccess({
+          id: res.user.id,
+          name: profile?.name || name || email.split("@")[0],
+          email: res.user.email,
+          plan: profile?.plan || "free",
+          token: res.access_token,
+          profile,
+        });
+      }
+    } catch(e) { setError(e.message||"Errore"); }
+    finally { setLoading(false); }
   };
+
   return (
     <div className="auth-wrap">
       <div className="auth-card">
         <div style={{textAlign:"center",marginBottom:28}}>
           <div className="auth-logo-mark">B</div>
           <div style={{fontFamily:"var(--display)",fontSize:26,letterSpacing:3,color:"white",marginTop:8}}>Bet<span style={{color:"var(--cyan)"}}>AI</span></div>
+          <div style={{fontSize:12,color:"var(--muted2)",marginTop:4}}>{isIt?"Il tuo analista AI":"Your AI analyst"}</div>
         </div>
         <div className="auth-tabs">
-          <div className={"auth-tab"+(tab==="login"?" active":"")} onClick={()=>setTab("login")}>{t.tabLogin}</div>
-          <div className={"auth-tab"+(tab==="register"?" active":"")} onClick={()=>setTab("register")}>{t.tabReg}</div>
+          <div className={"auth-tab"+(tab==="login"?" active":"")} onClick={()=>{setTab("login");setError("");setSuccess("");}}>
+            {t.tabLogin}
+          </div>
+          <div className={"auth-tab"+(tab==="register"?" active":"")} onClick={()=>{setTab("register");setError("");setSuccess("");}}>
+            {t.tabReg}
+          </div>
         </div>
-        {tab==="register" && <>
-          <label className="form-label">{t.name}</label>
-          <input className="form-input" placeholder="Mario Rossi" value={name} onChange={e=>setName(e.target.value)}/>
-        </>}
+        {success&&<div style={{background:"rgba(0,224,144,0.08)",border:"1px solid rgba(0,224,144,0.25)",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,color:"var(--green)",lineHeight:1.5}}>✓ {success}</div>}
+        {error&&<div style={{background:"rgba(255,68,102,0.08)",border:"1px solid rgba(255,68,102,0.25)",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,color:"var(--red)"}}>⚠ {error}</div>}
+        {tab==="register"&&<><label className="form-label">{t.name}</label><input className="form-input" placeholder="Mario Rossi" value={name} onChange={e=>setName(e.target.value)}/></>}
         <label className="form-label">{t.email}</label>
-        <input className="form-input" type="email" placeholder="mario@email.it" value={email} onChange={e=>setEmail(e.target.value)}/>
+        <input className="form-input" type="email" placeholder="mario@email.it" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/>
         <label className="form-label">{t.pass}</label>
-        <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)}/>
-        <button className="auth-btn" onClick={handle} disabled={loading||!email}>
-          {loading?"...":(tab==="login"?t.btnLogin:t.btnReg)}
+        <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle()}/>
+        {tab==="register"&&<div style={{fontSize:11,color:"var(--muted2)",marginBottom:14,lineHeight:1.6,padding:"10px 12px",background:"var(--card2)",borderRadius:8,border:"1px solid var(--border)"}}>
+          📧 {isIt?"Riceverai una email di conferma. Clicca il link per attivare l'account.":"You will receive a confirmation email. Click the link to activate your account."}
+        </div>}
+        <button className="auth-btn" onClick={handle} disabled={loading||!email||!password}>
+          {loading?<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{width:14,height:14,border:"2px solid rgba(5,8,15,0.3)",borderTopColor:"#05080f",borderRadius:"50%",animation:"spin 0.7s linear infinite",display:"inline-block"}}/>{isIt?"Accesso...":"Signing in..."}</span>:(tab==="login"?t.btnLogin:t.btnReg)}
         </button>
         <div style={{textAlign:"center",fontSize:13,color:"var(--muted2)",marginTop:18}}>
           {tab==="login"?t.sw1:t.sw2}{" "}
-          <span style={{color:"var(--cyan)",cursor:"pointer",fontWeight:600}} onClick={()=>setTab(tab==="login"?"register":"login")}>
+          <span style={{color:"var(--cyan)",cursor:"pointer",fontWeight:600}} onClick={()=>{setTab(tab==="login"?"register":"login");setError("");setSuccess("");}}>
             {tab==="login"?t.c1:t.c2}
           </span>
         </div>
-        <div style={{textAlign:"center",marginTop:16}}>
-          <span style={{fontSize:12,color:"var(--muted)",cursor:"pointer"}} onClick={onBack}>← {lang==="it"?"Torna alla home":"Back to home"}</span>
+        <div style={{textAlign:"center",marginTop:14}}>
+          <span style={{fontSize:12,color:"var(--muted)",cursor:"pointer"}} onClick={onBack}>
+            {isIt?"← Torna alla home":"← Back to home"}
+          </span>
         </div>
       </div>
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════
@@ -1366,6 +1548,25 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
   const [history, setHistory] = useState([]);
+
+  // Load schedine from Supabase on mount
+  useEffect(()=>{
+    if(!user?.token || !user?.id) return;
+    sb.getSchedine(user.id, user.token).then(data=>{
+      if(!Array.isArray(data)) return;
+      setHistory(data.map(s=>({
+        id: s.id,
+        sport: "⚽",
+        matches: Array.isArray(s.matches) ? s.matches.map(m=>m.teams).join(" | ") : "-",
+        date: new Date(s.created_at).toLocaleDateString("it-IT"),
+        quota: s.quota_totale?.toFixed(2)||"-",
+        status: s.esito||"pending",
+        risk: s.risk,
+        n: s.num_matches,
+        full: s,
+      })));
+    }).catch(()=>{});
+  },[user?.id]);
   const [activeNav, setActiveNav] = useState(0);
   const [todayMatches, setTodayMatches] = useState([]);
 
@@ -1381,6 +1582,23 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const probColor = prob>=65?"var(--green)":prob>=40?"var(--gold)":"var(--red)";
   const today = new Date().toLocaleDateString(isIt?"it-IT":"en-GB",{weekday:"long",day:"numeric",month:"long"});
 
+  // Load history from Supabase
+  useEffect(()=>{
+    if(!user?.token || !user?.id) return;
+    sb.getSchedine(user.id, user.token).then(data=>{
+      if(!Array.isArray(data)) return;
+      setHistory(data.map(s=>({
+        id:s.id, dbId:s.id,
+        sport:(s.sport||"").split(",").map(c=>c==="Calcio"?"⚽":c==="Basket"?"🏀":c==="Football"?"🏈":c==="Hockey"?"🏒":"🥊").join(""),
+        matches:Array.isArray(s.matches)?s.matches.map(m=>m.teams).join(" | "):"—",
+        date:new Date(s.created_at).toLocaleDateString("it-IT"),
+        quota:s.quota_totale?.toFixed(2)||"—",
+        esito:s.esito||"pending",
+        risk:s.risk, n:s.num_matches, details:s.matches,
+      })));
+    }).catch(()=>{});
+  },[user]);
+
   const toggleSport = (cat) => {
     setSelectedSports(prev => {
       const next = new Set(prev);
@@ -1395,6 +1613,13 @@ function Dashboard({ user, onLogout, lang, setLang }) {
       setReasoning(text.slice(0,i)); i+=6;
       if(i>text.length){ setReasoning(text); setTyping(false); clearInterval(iv); }
     },18);
+  };
+
+  const updateEsito = async (schedId, esito) => {
+    setHistory(h=>h.map(x=>x.id===schedId?{...x,status:esito}:x));
+    if(user?.token && typeof schedId === "string" && schedId.length > 10) {
+      await sb.updateSchedina(schedId, user.token, {esito}).catch(()=>{});
+    }
   };
 
   const generate = async () => {
@@ -1524,16 +1749,37 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
 
       setResult(parsed);
       animateReasoning(parsed.reasoning||"");
-      setHistory(h=>[{
-        id:Date.now(),
-        sport:[...cats].map(c=>c==="Calcio"?"⚽":c==="Basket"?"🏀":c==="Tennis"?"🎾":"🏈").join(""),
-        matches:parsed.matches?.map(m=>m.teams).join(" | ")||"-",
-        date:new Date().toLocaleDateString("it-IT"),
-        quota:parsed.total_quota?.toFixed(2)||"-",
-        status:"wait",
-        risk:R,
-        n:N,
-      },...h.slice(0,9)]);
+      // Save to Supabase if logged in
+      const schedEntry = {
+        sport: [...cats].join(","),
+        risk: R,
+        num_matches: N,
+        quota_totale: parsed.total_quota,
+        prob_stimata: parsed.estimated_prob,
+        matches: parsed.matches,
+        reasoning: parsed.reasoning,
+        esito: "pending",
+      };
+      let savedId = null;
+      if (user?.token && user?.id) {
+        try {
+          const saved = await sb.saveSchedina(user.token, {...schedEntry, user_id: user.id});
+          savedId = saved?.[0]?.id || null;
+        } catch(e) { console.warn("Salvataggio schedina fallito:", e); }
+      }
+      const histEntry = {
+        id: savedId || Date.now(),
+        dbId: savedId,
+        sport: [...cats].map(c=>c==="Calcio"?"⚽":c==="Basket"?"🏀":c==="Tennis"?"🎾":c==="Football"?"🏈":c==="Hockey"?"🏒":"🥊").join(""),
+        matches: parsed.matches?.map(m=>m.teams).join(" | ")||"-",
+        date: new Date().toLocaleDateString("it-IT"),
+        quota: parsed.total_quota?.toFixed(2)||"-",
+        status: "pending",
+        risk: R,
+        n: N,
+        details: parsed.matches,
+      };
+      setHistory(h=>[histEntry,...h.slice(0,19)]);
     } catch(err) {
       // Fallback: use real matches with correct odds range
       // Fallback con partite reali disponibili
@@ -1809,14 +2055,29 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
               :<div className="history-list">
                 {history.map(h=>(
                   <div className="history-item" key={h.id}>
-                    <span style={{fontSize:16}}>{h.sport}</span>
+                    <span style={{fontSize:16,flexShrink:0}}>{h.sport}</span>
                     <div className="history-info">
-                      <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{h.matches}</div>
-                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{h.date} · {h.n} {isIt?"partite":"picks"} · {h.risk?.toUpperCase()}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.matches}</div>
+                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{h.date} · {h.n||"?"} {isIt?"partite":"picks"} · {(h.risk||"balanced").toUpperCase()}</div>
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <span style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
-                      <span className="history-status hs-wait">{isIt?"In attesa":"Pending"}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                      <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
+                      {(!h.esito||h.esito==="pending") ? (
+                        <div style={{display:"flex",gap:4}}>
+                          <button onClick={async()=>{
+                            if(h.dbId&&user?.token) await supa.updateEsito(h.dbId,user.token,"won").catch(()=>{});
+                            setHistory(prev=>prev.map(x=>x.id===h.id?{...x,esito:"won"}:x));
+                          }} style={{padding:"3px 8px",borderRadius:6,background:"rgba(0,224,144,0.1)",border:"1px solid rgba(0,224,144,0.3)",color:"var(--green)",fontSize:10,fontWeight:700,cursor:"pointer"}}>✓ {isIt?"Vinta":"Won"}</button>
+                          <button onClick={async()=>{
+                            if(h.dbId&&user?.token) await supa.updateEsito(h.dbId,user.token,"lost").catch(()=>{});
+                            setHistory(prev=>prev.map(x=>x.id===h.id?{...x,esito:"lost"}:x));
+                          }} style={{padding:"3px 8px",borderRadius:6,background:"rgba(255,68,102,0.1)",border:"1px solid rgba(255,68,102,0.3)",color:"var(--red)",fontSize:10,fontWeight:700,cursor:"pointer"}}>✗ {isIt?"Persa":"Lost"}</button>
+                        </div>
+                      ) : (
+                        <span className={"history-status "+(h.esito==="won"?"hs-won":"hs-lost")}>
+                          {h.esito==="won"?(isIt?"✓ Vinta":"✓ Won"):(isIt?"✗ Persa":"✗ Lost")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1850,12 +2111,29 @@ export default function App() {
   const [page, setPage] = useState("landing");
   const [user, setUser] = useState(null);
   const [lang, setLang] = useState("it");
+
+  useEffect(()=>{
+    const session = sb.getSession();
+    if(session?.access_token && session?.user) {
+      sb.getProfile(session.user.id, session.access_token).then(profile=>{
+        setUser({ id:session.user.id, name:profile?.name||session.user.email.split("@")[0], email:session.user.email, plan:profile?.plan||"free", token:session.access_token, profile });
+        setPage("dashboard");
+      }).catch(()=>sb.clearSession());
+    }
+  },[]);
+
+  const handleLogout = async () => {
+    const session = sb.getSession();
+    if(session?.access_token) await sb.signOut(session.access_token).catch(()=>{});
+    sb.clearSession(); setUser(null); setPage("landing");
+  };
+
   return (
     <>
       <style>{STYLES}</style>
       {page==="landing" && <Landing onLogin={()=>setPage("auth")} lang={lang} setLang={setLang}/>}
       {page==="auth" && <Auth onSuccess={u=>{setUser(u);setPage("dashboard");}} onBack={()=>setPage("landing")} lang={lang}/>}
-      {page==="dashboard" && user && <Dashboard user={user} onLogout={()=>{setUser(null);setPage("landing");}} lang={lang} setLang={setLang}/>}
+      {page==="dashboard" && user && <Dashboard user={user} onLogout={handleLogout} lang={lang} setLang={setLang}/>}
     </>
   );
 }
