@@ -2389,6 +2389,3 @@ export default function App() {
     </>
   );
 }
-
-
-fix duplicates
