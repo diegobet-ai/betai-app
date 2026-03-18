@@ -1533,6 +1533,189 @@ Rispondi SOLO in JSON valido:
 }
 
 
+// ═══════════════════════════════════════════════════════════
+// SCHEDINE PAGE — storico completo con riapertura
+// ═══════════════════════════════════════════════════════════
+function SchedinePage({ history, isIt, selectedSchedina, setSelectedSchedina, updateEsito }) {
+  const [filter, setFilter] = useState("all");
+
+  const filtered = history.filter(h => {
+    if(filter==="won") return h.status==="won" || h.esito==="won";
+    if(filter==="lost") return h.status==="lost" || h.esito==="lost";
+    if(filter==="pending") return (h.status||h.esito||"pending")==="pending";
+    return true;
+  });
+
+  const wins = history.filter(h=>h.status==="won"||h.esito==="won").length;
+  const losses = history.filter(h=>h.status==="lost"||h.esito==="lost").length;
+  const pending = history.filter(h=>(h.status||h.esito||"pending")==="pending").length;
+  const winRate = history.length > 0 ? Math.round((wins/(wins+losses||1))*100) : 0;
+
+  if(selectedSchedina) {
+    const s = selectedSchedina;
+    const matches = s.details || s.full?.matches || [];
+    const esito = s.status || s.esito || "pending";
+    return (
+      <div style={{maxWidth:720}}>
+        <button onClick={()=>setSelectedSchedina(null)}
+          style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:13,fontWeight:600,marginBottom:20,padding:0}}>
+          ← {isIt?"Torna alle schedine":"Back to bets"}
+        </button>
+
+        <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border2)",padding:24,marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:12}}>
+            <div>
+              <div style={{fontSize:22,fontFamily:"var(--display)",color:"white",letterSpacing:1}}>
+                {isIt?"Schedina del":"Bet from"} {s.date}
+              </div>
+              <div style={{fontSize:12,color:"var(--muted2)",marginTop:4,fontFamily:"var(--mono)"}}>
+                {s.risk?.toUpperCase()} · {s.n} {isIt?"partite":"picks"} · {s.sport}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{textAlign:"center",padding:"8px 16px",background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+                <div style={{fontFamily:"var(--display)",fontSize:22,color:"var(--gold)"}}>{s.quota}x</div>
+                <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>quota</div>
+              </div>
+              {esito==="pending" ? (
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <button onClick={()=>{updateEsito(s.id,"won");setSelectedSchedina({...s,status:"won"});}}
+                    style={{padding:"8px 16px",borderRadius:10,background:"rgba(0,224,144,0.1)",border:"1px solid rgba(0,224,144,0.3)",color:"var(--green)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    ✓ {isIt?"Schedina VINTA":"Mark as WON"}
+                  </button>
+                  <button onClick={()=>{updateEsito(s.id,"lost");setSelectedSchedina({...s,status:"lost"});}}
+                    style={{padding:"8px 16px",borderRadius:10,background:"rgba(255,68,102,0.1)",border:"1px solid rgba(255,68,102,0.3)",color:"var(--red)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    ✗ {isIt?"Schedina PERSA":"Mark as LOST"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{padding:"10px 20px",borderRadius:12,
+                  background:esito==="won"?"rgba(0,224,144,0.1)":"rgba(255,68,102,0.1)",
+                  border:`1px solid ${esito==="won"?"rgba(0,224,144,0.3)":"rgba(255,68,102,0.3)"}`,
+                  color:esito==="won"?"var(--green)":"var(--red)",
+                  fontSize:14,fontWeight:700,textAlign:"center"}}>
+                  {esito==="won"?(isIt?"🏆 VINTA":"🏆 WON"):(isIt?"❌ PERSA":"❌ LOST")}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Partite */}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {matches.length > 0 ? matches.map((m,i)=>(
+              <div key={i} style={{background:"var(--card2)",borderRadius:12,padding:"12px 16px",border:"1px solid var(--border)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"white"}}>{m.teams}</div>
+                    <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{m.league} · {m.time}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"var(--cyan)"}}>{m.selection}</div>
+                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)"}}>{m.single_prob}% · {m.ai_edge}</div>
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)",background:"rgba(245,184,0,0.08)",border:"1px solid rgba(245,184,0,0.2)",padding:"4px 10px",borderRadius:8}}>{m.quota}</div>
+                  </div>
+                </div>
+                {m.stat_chips?.length>0&&(
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>
+                    {m.stat_chips.map((ch,j)=>(
+                      <span key={j} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(0,212,255,0.07)",color:"var(--cyan)",fontFamily:"var(--mono)"}}>{ch}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )) : (
+              <div style={{color:"var(--muted2)",fontSize:13,padding:16,textAlign:"center"}}>
+                {isIt?"Dettagli non disponibili":"Details not available"}
+              </div>
+            )}
+          </div>
+
+          {/* Reasoning */}
+          {(s.full?.reasoning || s.reasoning) && (
+            <div style={{marginTop:16,padding:14,background:"rgba(0,212,255,0.02)",borderRadius:12,border:"1px solid rgba(0,212,255,0.1)"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--cyan)",letterSpacing:2,marginBottom:8,textTransform:"uppercase"}}>🧠 AI Analysis</div>
+              <div style={{fontSize:12,color:"var(--muted3)",lineHeight:1.8}}>{s.full?.reasoning || s.reasoning}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{maxWidth:760}}>
+      {/* Stats row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:24}}>
+        {[
+          {v:history.length,l:isIt?"Totali":"Total",c:"var(--cyan)"},
+          {v:wins,l:isIt?"Vinte":"Won",c:"var(--green)"},
+          {v:losses,l:isIt?"Perse":"Lost",c:"var(--red)"},
+          {v:winRate+"%",l:isIt?"Win Rate":"Win Rate",c:"var(--gold)"},
+        ].map((s,i)=>(
+          <div key={i} style={{background:"var(--card)",borderRadius:14,padding:"14px",textAlign:"center",border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--display)",fontSize:26,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase",marginTop:2}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{display:"flex",gap:6,marginBottom:16}}>
+        {[["all",isIt?"Tutte":"All"],["pending",isIt?"In attesa":"Pending"],["won",isIt?"Vinte":"Won"],["lost",isIt?"Perse":"Lost"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setFilter(k)}
+            style={{padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",
+              background:filter===k?"rgba(0,212,255,0.1)":"transparent",
+              borderColor:filter===k?"var(--cyan)":"var(--border)",
+              color:filter===k?"var(--cyan)":"var(--muted2)"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* List */}
+      {filtered.length === 0 ? (
+        <div style={{textAlign:"center",padding:48,color:"var(--muted2)"}}>
+          <div style={{fontSize:32,marginBottom:12}}>📋</div>
+          <div style={{fontSize:14}}>{isIt?"Nessuna schedina trovata":"No bets found"}</div>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {filtered.map(h=>{
+            const esito = h.status || h.esito || "pending";
+            return (
+              <div key={h.id} onClick={()=>setSelectedSchedina(h)}
+                style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:"14px 16px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:12}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                <div style={{fontSize:22}}>{h.sport}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.matches}</div>
+                  <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:3}}>
+                    {h.date} · {h.n} {isIt?"partite":"picks"} · {h.risk?.toUpperCase()}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
+                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:20,
+                    background:esito==="won"?"rgba(0,224,144,0.08)":esito==="lost"?"rgba(255,68,102,0.08)":"rgba(0,212,255,0.08)",
+                    color:esito==="won"?"var(--green)":esito==="lost"?"var(--red)":"var(--cyan)",
+                    border:`1px solid ${esito==="won"?"rgba(0,224,144,0.2)":esito==="lost"?"rgba(255,68,102,0.2)":"rgba(0,212,255,0.2)"}`}}>
+                    {esito==="won"?(isIt?"VINTA":"WON"):esito==="lost"?(isIt?"PERSA":"LOST"):(isIt?"IN ATTESA":"PENDING")}
+                  </span>
+                  <span style={{color:"var(--muted2)",fontSize:16}}>›</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function Dashboard({ user, onLogout, lang, setLang }) {
   const t = T[lang].dash;
   const isIt = lang==="it";
@@ -1548,6 +1731,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
   const [history, setHistory] = useState([]);
+  const [selectedSchedina, setSelectedSchedina] = useState(null);
 
   // Load schedine from Supabase on mount
   useEffect(()=>{
@@ -1860,11 +2044,20 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
           </div>
         </div>
 
+        {activeNav===1 && (
+          <SchedinePage
+            history={history}
+            isIt={isIt}
+            selectedSchedina={selectedSchedina}
+            setSelectedSchedina={setSelectedSchedina}
+            updateEsito={updateEsito}
+          />
+        )}
         {activeNav===2 && <DashWins lang={lang}/>}
         {activeNav===3 && <AnalisiPage lang={lang}/>}
-        {activeNav===4 && <ProfilePage user={user} lang={lang}/>}
+        {activeNav===4 && <ProfilePage user={user} lang={lang} updateEsito={updateEsito}/>}
 
-        {activeNav!==2 && activeNav!==3 && activeNav!==4 && (<>
+        {activeNav!==1 && activeNav!==2 && activeNav!==3 && activeNav!==4 && (<>
           {/* Stats bar */}
           <div className="stats-bar">
             {[{v:"24",l:t.stats[0],tr:"+3",up:true},{v:"16",l:t.stats[1],tr:"+1",up:true},{v:"67%",l:t.stats[2],tr:"+2%",up:true},{v:"6.8x",l:t.stats[3],tr:"-0.4",up:false}].map((s,i)=>(
