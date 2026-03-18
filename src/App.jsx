@@ -1166,9 +1166,11 @@ function Auth({ onSuccess, onBack, lang }) {
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════
-function DashWins({ lang }) {
+function DashWins({ lang, history = [] }) {
   const t = T[lang].dash;
   const isIt = lang==="it";
+  const wonSchedule = history.filter(h=>(h.status||h.esito)==="won");
+
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
@@ -1180,33 +1182,50 @@ function DashWins({ lang }) {
       </div>
       <LiveTicker/>
       <div className="dash-wins-grid" style={{marginTop:16}}>
-        {WIN_DATA.map((wn,idx)=>(
-          <div className="dash-win-card" key={wn.id} style={{animation:"popIn 0.4s ease both",animationDelay:idx*0.06+"s"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:16}}>{wn.sport}</span>
-                <span style={{fontSize:10,fontWeight:700,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>{wn.sportName}</span>
-              </div>
-              <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--muted)"}}>{wn.date}</span>
+        {wonSchedule.length === 0 ? (
+          <div style={{gridColumn:"1/-1",textAlign:"center",padding:"48px 24px",color:"var(--muted2)"}}>
+            <div style={{fontSize:40,marginBottom:12}}>🏆</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--text)",marginBottom:8}}>
+              {isIt?"Nessuna schedina vincente ancora":"No winning bets yet"}
             </div>
-            {wn.matches.map((m,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"3px 0",borderBottom:i<wn.matches.length-1?"1px solid var(--border)":"none"}}>
-                <span style={{color:"var(--text)"}}>{m.teams}</span>
-                <span style={{color:"var(--green)",fontWeight:700,fontFamily:"var(--mono)"}}>{m.sel} {m.quota}x</span>
-              </div>
-            ))}
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
-              <div>
-                <div style={{fontFamily:"var(--display)",fontSize:22,color:"var(--gold)"}}>{wn.totalQuota}x</div>
-                <div style={{fontSize:10,color:"var(--muted2)"}}>€{wn.puntata} {isIt?"puntati":"staked"}</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:13,fontWeight:700,color:"var(--green)"}}>{wn.profit}€</div>
-                <div style={{fontSize:10,color:"var(--muted2)",marginTop:3}}>{wn.user} · {wn.city}</div>
-              </div>
+            <div style={{fontSize:13,color:"var(--muted2)"}}>
+              {isIt?"Genera una schedina, scommetti e segna le vincite dalla sezione Schedine!":"Generate a bet, play it and mark wins from the Bets section!"}
             </div>
           </div>
-        ))}
+        ) : wonSchedule.map((wn,idx)=>{
+          const matches = wn.details || wn.full?.matches || [];
+          return (
+            <div className="dash-win-card" key={wn.id} style={{animation:"popIn 0.4s ease both",animationDelay:idx*0.06+"s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:16}}>{wn.sport}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>{wn.risk?.toUpperCase()}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--muted)"}}>{wn.date}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:"var(--green)",background:"rgba(0,224,144,0.08)",border:"1px solid rgba(0,224,144,0.2)",padding:"2px 8px",borderRadius:20}}>✓ VINTA</span>
+                </div>
+              </div>
+              {matches.slice(0,4).map((m,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"4px 0",borderBottom:i<Math.min(matches.length,4)-1?"1px solid var(--border)":"none"}}>
+                  <span style={{color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"60%"}}>{m.teams}</span>
+                  <span style={{color:"var(--green)",fontWeight:700,fontFamily:"var(--mono)",flexShrink:0}}>{m.selection} {m.quota}x</span>
+                </div>
+              ))}
+              {matches.length > 4 && <div style={{fontSize:10,color:"var(--muted2)",marginTop:4}}>+{matches.length-4} {isIt?"altre partite":"more matches"}</div>}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                <div>
+                  <div style={{fontFamily:"var(--display)",fontSize:22,color:"var(--gold)"}}>{wn.quota}x</div>
+                  <div style={{fontSize:10,color:"var(--muted2)"}}>{wn.n} {isIt?"partite":"picks"}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"var(--green)"}}>🏆 {isIt?"VINCITA":"WIN"}</div>
+                  <div style={{fontSize:10,color:"var(--muted2)",marginTop:3}}>{user?.name||"Tu"}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1215,46 +1234,97 @@ function DashWins({ lang }) {
 // ═══════════════════════════════════════════════════════════
 // PROFILE PAGE
 // ═══════════════════════════════════════════════════════════
-function ProfilePage({ user, lang }) {
+function ProfilePage({ user, lang, history = [] }) {
   const isIt = lang==="it";
   const [saved, setSaved] = useState(false);
   const [prefs, setPrefs] = useState({
-    defaultRisk: "balanced",
-    defaultSports: ["Calcio","Basket"],
-    defaultMatches: 3,
-    emailAlerts: true,
-    pushNotifications: false,
-    language: lang,
-    currency: "EUR",
-    timezone: "Europe/Rome",
+    defaultRisk: user?.profile?.default_risk || "balanced",
+    defaultMatches: user?.profile?.default_matches || 3,
+    emailAlerts: user?.profile?.email_alerts ?? true,
   });
 
-  const save = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
+  // Real stats from history
+  const total = history.length;
+  const won = history.filter(h=>(h.status||h.esito)==="won").length;
+  const lost = history.filter(h=>(h.status||h.esito)==="lost").length;
+  const pending = history.filter(h=>(h.status||h.esito||"pending")==="pending").length;
+  const winRate = (won+lost) > 0 ? Math.round((won/(won+lost))*100) : 0;
+  const avgQuota = total > 0 ? (history.reduce((a,h)=>a+(parseFloat(h.quota)||0),0)/total).toFixed(2) : "0";
+  // Streak: consecutive won from most recent
+  let streak = 0;
+  for(let i=0; i<history.length; i++) {
+    const e = history[i].status||history[i].esito||"pending";
+    if(e==="won") streak++; else if(e==="lost") break; else break;
+  }
+
+  const memberSince = user?.profile?.created_at
+    ? new Date(user.profile.created_at).toLocaleDateString(isIt?"it-IT":"en-GB",{month:"long",year:"numeric"})
+    : "2026";
+
+  const save = async () => {
+    if(user?.token && user?.id) {
+      await sb.updateProfile(user.id, user.token, {
+        default_risk: prefs.defaultRisk,
+        default_matches: prefs.defaultMatches,
+        email_alerts: prefs.emailAlerts,
+      }).catch(()=>{});
+    }
+    setSaved(true); setTimeout(()=>setSaved(false),2500);
+  };
 
   return (
     <div style={{maxWidth:700}}>
-      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:28,padding:24,background:"var(--card)",borderRadius:18,border:"1px solid var(--border)"}}>
-        <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#05080f"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,padding:24,background:"var(--card)",borderRadius:18,border:"1px solid var(--border)"}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#05080f",flexShrink:0}}>
           {(user.name||"U")[0].toUpperCase()}
         </div>
-        <div style={{flex:1}}>
+        <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:20,fontWeight:700,color:"white"}}>{user.name}</div>
           <div style={{fontSize:13,color:"var(--muted2)",marginTop:2}}>{user.email}</div>
-          <div style={{display:"flex",gap:8,marginTop:8}}>
-            <span style={{fontSize:11,fontWeight:700,color:"var(--gold)",background:"rgba(255,200,0,0.1)",border:"1px solid rgba(255,200,0,0.2)",padding:"2px 10px",borderRadius:20}}>⭐ Pro</span>
-            <span style={{fontSize:11,color:"var(--muted2)",fontFamily:"var(--mono)"}}>Member since Mar 2026</span>
+          <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"var(--gold)",background:"rgba(255,200,0,0.1)",border:"1px solid rgba(255,200,0,0.2)",padding:"2px 10px",borderRadius:20}}>
+              ⭐ {user.plan==="elite"?"Elite":user.plan==="pro"?"Pro":"Free"}
+            </span>
+            <span style={{fontSize:11,color:"var(--muted2)",fontFamily:"var(--mono)"}}>
+              {isIt?"Membro da":"Member since"} {memberSince}
+            </span>
           </div>
         </div>
-        <div style={{textAlign:"right"}}>
-          <div style={{fontSize:24,fontWeight:900,color:"var(--cyan)",fontFamily:"var(--display)"}}>24</div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--cyan)"}}>{total}</div>
           <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:1}}>{isIt?"SCHEDINE":"BETS"}</div>
         </div>
+      </div>
+
+      {/* Real Stats */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:16}}>📊 {isIt?"Le tue statistiche reali":"Your real statistics"}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+          {[
+            {v:total,l:isIt?"Schedine totali":"Total bets",c:"var(--cyan)"},
+            {v:won,l:isIt?"Vinte":"Won",c:"var(--green)"},
+            {v:lost,l:isIt?"Perse":"Lost",c:"var(--red)"},
+            {v:winRate+"%",l:isIt?"Win rate":"Win rate",c:"var(--gold)"},
+            {v:avgQuota+"x",l:isIt?"Quota media":"Avg odds",c:"var(--purple)"},
+            {v:streak,l:isIt?"Serie vincente":"Win streak",c:"var(--cyan)"},
+          ].map((s,i)=>(
+            <div key={i} style={{background:"var(--card2)",borderRadius:12,padding:"14px 12px",textAlign:"center",border:"1px solid var(--border)"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:24,color:s.c,marginBottom:4}}>{s.v}</div>
+              <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:0.5,textTransform:"uppercase"}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        {pending > 0 && (
+          <div style={{marginTop:12,padding:"8px 14px",background:"rgba(0,212,255,0.05)",borderRadius:10,border:"1px solid rgba(0,212,255,0.15)",fontSize:12,color:"var(--cyan)"}}>
+            ⏳ {pending} {isIt?"schedine in attesa di risultato — vai su Schedine per aggiornarle":"bets pending result — go to Bets to update them"}
+          </div>
+        )}
       </div>
 
       {/* Preferenze */}
       <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
         <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:20}}>⚙️ {isIt?"Preferenze Default":"Default Preferences"}</div>
-        
         <div style={{marginBottom:18}}>
           <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Rischio default":"Default risk"}</div>
           <div style={{display:"flex",gap:8}}>
@@ -1269,7 +1339,6 @@ function ProfilePage({ user, lang }) {
             ))}
           </div>
         </div>
-
         <div style={{marginBottom:18}}>
           <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Partite default":"Default matches"}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1284,7 +1353,6 @@ function ProfilePage({ user, lang }) {
             ))}
           </div>
         </div>
-
         <div style={{marginBottom:18}}>
           <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Notifiche email":"Email notifications"}</div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -1295,30 +1363,704 @@ function ProfilePage({ user, lang }) {
             <span style={{fontSize:12,color:"var(--muted2)"}}>{prefs.emailAlerts?(isIt?"Attive":"Active"):(isIt?"Disattive":"Disabled")}</span>
           </div>
         </div>
-
         <button onClick={save} style={{width:"100%",padding:"12px",borderRadius:12,background:saved?"var(--green)":"var(--cyan)",color:"#05080f",border:"none",fontWeight:700,fontSize:13,cursor:"pointer",transition:"all 0.3s"}}>
           {saved?(isIt?"✓ Salvato!":"✓ Saved!"):(isIt?"Salva Preferenze":"Save Preferences")}
         </button>
       </div>
 
-      {/* Statistiche */}
+      {/* Email automatiche info */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:12}}>📧 {isIt?"Email automatiche":"Automatic emails"}</div>
+        <div style={{fontSize:12,color:"var(--muted2)",lineHeight:1.7,marginBottom:16}}>
+          {isIt
+            ?"BetAI ti invia email automatiche in questi casi:"
+            :"BetAI sends you automatic emails in these cases:"}
+        </div>
+        {[
+          {icon:"🔔",t:isIt?"Schedina pronta":"Bet ready",d:isIt?"Quando una nuova schedina AI è disponibile":"When a new AI bet is available"},
+          {icon:"😴",t:isIt?"Sei inattivo da 7 giorni":"Inactive for 7 days",d:isIt?"Ti ricordiamo che ci sei perso! Torna a giocare 😄":"We remind you we miss you! Come back and play 😄"},
+          {icon:"📈",t:isIt?"Quote cambiate":"Odds changed",d:isIt?"Quando le quote di una tua schedina cambiano significativamente":"When odds on your bet change significantly"},
+          {icon:"🏆",t:isIt?"Risultato schedina":"Bet result",d:isIt?"Quando le partite della tua schedina terminano":"When matches in your bet are finished"},
+        ].map((item,i)=>(
+          <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 0",borderBottom:i<3?"1px solid var(--border)":"none"}}>
+            <span style={{fontSize:18}}>{item.icon}</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{item.t}</div>
+              <div style={{fontSize:11,color:"var(--muted2)",marginTop:2}}>{item.d}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANALISI SCHEDINA PAGE
+// ═══════════════════════════════════════════════════════════
+function AnalisiPage({ lang }) {
+  const isIt = lang==="it";
+  const [matches, setMatches] = useState([{id:1,teams:"",selection:"",quota:""}]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [reasoning, setReasoning] = useState("");
+  const [typing, setTyping] = useState(false);
+
+  const addMatch = () => setMatches(m=>[...m,{id:Date.now(),teams:"",selection:"",quota:""}]);
+  const removeMatch = (id) => setMatches(m=>m.filter(x=>x.id!==id));
+  const updateMatch = (id,field,val) => setMatches(m=>m.map(x=>x.id===id?{...x,[field]:val}:x));
+
+  const analyze = async () => {
+    const valid = matches.filter(m=>m.teams.trim()&&m.selection.trim()&&m.quota);
+    if(valid.length===0) return;
+    setLoading(true); setResult(null); setReasoning("");
+
+    const schedina = valid.map((m,i)=>`${i+1}. ${m.teams} - Selezione: ${m.selection} - Quota: ${m.quota}`).join("\n");
+    const totQ = valid.reduce((a,m)=>a*(parseFloat(m.quota)||1),1).toFixed(2);
+
+    const prompt = `Sei BetAI, analista esperto di scommesse sportive. Analizza questa schedina inserita dall'utente.
+
+SCHEDINA:
+${schedina}
+QUOTA TOTALE: ${totQ}x
+
+Per OGNI selezione:
+1. Analizza la partita/evento con la tua conoscenza (forma recente, H2H, statistiche)
+2. Stima la probabilità reale di vittoria per quella selezione (%)
+3. Confronta con la probabilità implicita del bookmaker (1/quota*100)
+4. Calcola edge = prob_stimata - prob_implicita
+5. Dai un giudizio: OTTIMA SCELTA / BUONA / NELLA MEDIA / RISCHIOSA / SCONSIGLIATA
+
+Alla fine:
+- Probabilità combinata stimata della schedina intera
+- Giudizio complessivo
+- Suggerimenti per migliorarla
+
+Rispondi SOLO in JSON valido:
+{"selections":[{"teams":"nome partita","selection":"esito","quota":1.85,"implied_prob":54,"estimated_prob":61,"edge":"+7%","verdict":"OTTIMA SCELTA","verdict_color":"green","reason":"spiegazione breve"}],"combined_prob":18,"total_quota":${totQ},"overall_verdict":"SCHEDINA SOLIDA","overall_color":"gold","tips":["consiglio 1","consiglio 2","consiglio 3"],"reasoning":"analisi dettagliata in ${isIt?"italiano":"english"} — min 5 frasi"}`;
+
+    try {
+      const res = await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+      const data = await res.json();
+      const raw = data.content?.map(b=>b.text||"").join("")||"";
+      const clean = raw.replace(/```json/g,"").replace(/```/g,"").trim();
+      const parsed = JSON.parse(clean);
+      setResult(parsed);
+      // animate reasoning
+      setTyping(true); let i=0;
+      const txt = parsed.reasoning||"";
+      const iv = setInterval(()=>{setReasoning(txt.slice(0,i));i+=6;if(i>txt.length){setReasoning(txt);setTyping(false);clearInterval(iv);}},18);
+    } catch(e) {
+      setResult({error:true,message:e.message});
+    } finally { setLoading(false); }
+  };
+
+  const verdictStyle = (color) => ({
+    padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,
+    background:color==="green"?"rgba(0,224,144,0.1)":color==="gold"?"rgba(255,200,0,0.1)":color==="red"?"rgba(255,80,80,0.1)":"rgba(0,212,255,0.1)",
+    color:color==="green"?"var(--green)":color==="gold"?"var(--gold)":color==="red"?"var(--red)":"var(--cyan)",
+    border:`1px solid ${color==="green"?"rgba(0,224,144,0.3)":color==="gold"?"rgba(255,200,0,0.3)":color==="red"?"rgba(255,80,80,0.3)":"rgba(0,212,255,0.3)"}`,
+  });
+
+  return (
+    <div style={{maxWidth:760}}>
+      <div style={{marginBottom:24,padding:20,background:"linear-gradient(135deg,rgba(0,212,255,0.08),rgba(139,92,246,0.08))",borderRadius:18,border:"1px solid var(--border)"}}>
+        <div style={{fontSize:13,color:"var(--cyan)",fontFamily:"var(--mono)",marginBottom:4}}>🔬 ANALISI SCHEDINA</div>
+        <div style={{fontSize:20,fontWeight:700,color:"white",marginBottom:6}}>
+          {isIt?"Analizza la tua schedina":"Analyze your bet slip"}
+        </div>
+        <div style={{fontSize:12,color:"var(--muted2)"}}>
+          {isIt?"Inserisci le partite che vuoi giocare e l'AI ti dice la probabilità reale di vincita e il valore di ogni selezione."
+               :"Enter the matches you want to bet on and AI tells you the real win probability and value of each selection."}
+        </div>
+      </div>
+
+      {/* Match inputs */}
       <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
-        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:20}}>📊 {isIt?"Le tue statistiche":"Your Statistics"}</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+        <div style={{fontSize:14,fontWeight:700,color:"white",marginBottom:18}}>
+          📋 {isIt?"Le tue selezioni":"Your selections"}
+        </div>
+        {matches.map((m,i)=>(
+          <div key={m.id} style={{marginBottom:14,padding:16,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{fontSize:12,fontWeight:700,color:"var(--cyan)",fontFamily:"var(--mono)"}}>#{i+1}</span>
+              {matches.length>1&&<button onClick={()=>removeMatch(m.id)} style={{background:"none",border:"none",color:"var(--red)",cursor:"pointer",fontSize:16}}>✕</button>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 80px",gap:8}}>
+              <input value={m.teams} onChange={e=>updateMatch(m.id,"teams",e.target.value)}
+                placeholder={isIt?"Squadra A vs Squadra B":"Team A vs Team B"}
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+              <input value={m.selection} onChange={e=>updateMatch(m.id,"selection",e.target.value)}
+                placeholder={isIt?"Es: 1, X, Over 2.5":"E.g: 1, X, Over 2.5"}
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+              <input value={m.quota} onChange={e=>updateMatch(m.id,"quota",e.target.value)}
+                placeholder="Quota" type="number" step="0.01" min="1"
+                style={{padding:"9px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,outline:"none"}}/>
+            </div>
+          </div>
+        ))}
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <button onClick={addMatch} style={{flex:1,padding:"10px",borderRadius:10,background:"var(--card2)",border:"1px dashed var(--border2)",color:"var(--muted2)",cursor:"pointer",fontSize:12,fontWeight:600}}>
+            + {isIt?"Aggiungi selezione":"Add selection"}
+          </button>
+          <button onClick={analyze} disabled={loading}
+            style={{flex:2,padding:"10px",borderRadius:10,background:"var(--cyan)",color:"#05080f",border:"none",cursor:"pointer",fontSize:13,fontWeight:700}}>
+            {loading?(isIt?"Analisi in corso...":"Analyzing..."):(isIt?"🔬 Analizza con AI":"🔬 Analyze with AI")}
+          </button>
+        </div>
+      </div>
+
+      {/* Results */}
+      {result&&!result.error&&(
+        <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24}}>
+          {/* Overall verdict */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,padding:16,background:"var(--card2)",borderRadius:12}}>
+            <div>
+              <div style={{fontSize:12,color:"var(--muted2)",marginBottom:4}}>{isIt?"Giudizio complessivo":"Overall verdict"}</div>
+              <span style={verdictStyle(result.overall_color)}>{result.overall_verdict}</span>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--green)"}}>{result.combined_prob?.toFixed(0)}%</div>
+              <div style={{fontSize:10,color:"var(--muted2)"}}>{isIt?"prob. vincita":"win prob."}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--gold)"}}>{result.total_quota}x</div>
+              <div style={{fontSize:10,color:"var(--muted2)"}}>{isIt?"quota totale":"total odds"}</div>
+            </div>
+          </div>
+
+          {/* Each selection */}
+          {result.selections?.map((s,i)=>(
+            <div key={i} style={{marginBottom:12,padding:14,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"white"}}>{s.teams}</div>
+                  <div style={{fontSize:11,color:"var(--muted2)",marginTop:2}}>{s.selection} · quota {s.quota}</div>
+                </div>
+                <span style={verdictStyle(s.verdict_color)}>{s.verdict}</span>
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:8}}>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--muted2)"}}>Impl. {s.implied_prob}%</span>
+                <span style={{fontSize:11,color:"var(--muted2)"}}>→</span>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--cyan)"}}>Reale ~{s.estimated_prob}%</span>
+                <span style={{fontSize:11,fontFamily:"var(--mono)",color:s.edge?.startsWith("+")||s.edge>0?"var(--green)":"var(--red)"}}>Edge {s.edge}</span>
+              </div>
+              <div style={{fontSize:11,color:"var(--muted2)",lineHeight:1.5}}>{s.reason}</div>
+            </div>
+          ))}
+
+          {/* Tips */}
+          {result.tips?.length>0&&(
+            <div style={{marginTop:16,padding:14,background:"rgba(0,212,255,0.05)",borderRadius:12,border:"1px solid rgba(0,212,255,0.15)"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--cyan)",marginBottom:10}}>💡 {isIt?"Suggerimenti AI":"AI Tips"}</div>
+              {result.tips.map((tip,i)=>(
+                <div key={i} style={{fontSize:12,color:"var(--muted2)",marginBottom:6,paddingLeft:12,borderLeft:"2px solid var(--cyan)"}}>
+                  {tip}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Reasoning */}
+          <div style={{marginTop:16,padding:14,background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--cyan)",marginBottom:8,fontFamily:"var(--mono)"}}>🧠 ANALISI DETTAGLIATA</div>
+            <div style={{fontSize:12,color:"var(--muted2)",lineHeight:1.7}}>{reasoning}{typing&&<span style={{animation:"blink 1s infinite"}}>|</span>}</div>
+          </div>
+        </div>
+      )}
+
+      {result?.error&&(
+        <div style={{padding:20,background:"rgba(255,80,80,0.08)",borderRadius:12,border:"1px solid rgba(255,80,80,0.2)",color:"var(--red)",fontSize:12}}>
+          ⚠️ Errore: {result.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// SCHEDINE PAGE — storico completo con riapertura
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// SCHEDINE PAGE
+// ═══════════════════════════════════════════════════════════
+function SchedinePage({ history, isIt, selectedSchedina, setSelectedSchedina, updateEsito }) {
+  const [filter, setFilter] = useState("all");
+  const [view, setView] = useState("month"); // "month" | "day" | "all"
+
+  const filtered = history.filter(h => {
+    if(filter==="won") return (h.status||h.esito)==="won";
+    if(filter==="lost") return (h.status||h.esito)==="lost";
+    if(filter==="pending") return (h.status||h.esito||"pending")==="pending";
+    return true;
+  });
+
+  // Group by month or day
+  const grouped = {};
+  filtered.forEach(h => {
+    let key;
+    if(view==="month") {
+      // Parse date dd/mm/yyyy
+      const parts = h.date?.split("/");
+      key = parts?.length===3 ? `${parts[1]}/${parts[2]}` : h.date || "—";
+    } else {
+      key = h.date || "—";
+    }
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(h);
+  });
+
+  const monthNames = {
+    "01":"Gennaio","02":"Febbraio","03":"Marzo","04":"Aprile","05":"Maggio","06":"Giugno",
+    "07":"Luglio","08":"Agosto","09":"Settembre","10":"Ottobre","11":"Novembre","12":"Dicembre"
+  };
+
+  const formatGroupKey = (key) => {
+    if(view==="month") {
+      const [m,y] = key.split("/");
+      return isIt ? `${monthNames[m]||m} ${y}` : `${new Date(2000,parseInt(m)-1).toLocaleString("en",{month:"long"})} ${y}`;
+    }
+    return key;
+  };
+
+  const wins = history.filter(h=>(h.status||h.esito)==="won").length;
+  const lost2 = history.filter(h=>(h.status||h.esito)==="lost").length;
+  const winRate = (wins+lost2)>0?Math.round(wins/(wins+lost2)*100):0;
+
+  // Download schedina as image using canvas
+  const downloadSchedina = async (s) => {
+    const matches = s.details || s.full?.matches || [];
+    const canvas = document.createElement("canvas");
+    canvas.width = 600; canvas.height = 120 + matches.length * 56 + 80;
+    const ctx = canvas.getContext("2d");
+    // Background
+    ctx.fillStyle = "#0c1122"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // Header
+    ctx.fillStyle = "#00d4ff"; ctx.font = "bold 28px sans-serif"; ctx.fillText("BetAI", 24, 44);
+    ctx.fillStyle = "#5d6e8e"; ctx.font = "13px sans-serif";
+    ctx.fillText(`${s.date} · ${s.risk?.toUpperCase()} · ${s.n} ${isIt?"partite":"picks"}`, 24, 68);
+    // Divider
+    ctx.fillStyle = "rgba(255,255,255,0.06)"; ctx.fillRect(0, 84, canvas.width, 1);
+    // Matches
+    matches.forEach((m, i) => {
+      const y = 108 + i * 56;
+      ctx.fillStyle = "#111827"; ctx.beginPath();
+      ctx.roundRect(16, y, canvas.width-32, 48, 8); ctx.fill();
+      ctx.fillStyle = "#dde3f0"; ctx.font = "bold 13px sans-serif";
+      ctx.fillText(m.teams?.slice(0,38)||"", 28, y+18);
+      ctx.fillStyle = "#00d4ff"; ctx.font = "bold 12px sans-serif";
+      ctx.fillText(m.selection||"", 28, y+36);
+      ctx.fillStyle = "#f5b800"; ctx.font = "bold 16px sans-serif";
+      ctx.fillText(`${m.quota}x`, canvas.width-60, y+28);
+    });
+    // Total
+    const botY = canvas.height - 56;
+    ctx.fillStyle = "rgba(255,255,255,0.04)"; ctx.fillRect(0, botY-8, canvas.width, 64);
+    ctx.fillStyle = "#f5b800"; ctx.font = "bold 22px sans-serif";
+    ctx.fillText(`QUOTA: ${s.quota}x`, 24, botY+22);
+    ctx.fillStyle = "#5d6e8e"; ctx.font = "11px sans-serif";
+    ctx.fillText("betai-app-theta.vercel.app", canvas.width-220, botY+22);
+    // Download
+    const link = document.createElement("a");
+    link.download = `BetAI_${s.date?.replace(/\//g,"-")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  if(selectedSchedina) {
+    const s = selectedSchedina;
+    const matches = s.details || s.full?.matches || [];
+    const esito = s.status || s.esito || "pending";
+    return (
+      <div style={{maxWidth:720}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+          <button onClick={()=>setSelectedSchedina(null)}
+            style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:13,fontWeight:600,padding:0}}>
+            ← {isIt?"Torna alle schedine":"Back to bets"}
+          </button>
+          <button onClick={()=>downloadSchedina(s)}
+            style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:10,background:"rgba(0,212,255,0.08)",border:"1px solid rgba(0,212,255,0.25)",color:"var(--cyan)",cursor:"pointer",fontSize:12,fontWeight:700}}>
+            ⬇️ {isIt?"Scarica PNG":"Download PNG"}
+          </button>
+        </div>
+
+        <div style={{background:"var(--card)",borderRadius:20,border:"1px solid var(--border2)",padding:24,marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:12}}>
+            <div>
+              <div style={{fontSize:20,fontFamily:"var(--display)",color:"white",letterSpacing:1}}>
+                {isIt?"Schedina del":"Bet from"} {s.date}
+              </div>
+              <div style={{fontSize:12,color:"var(--muted2)",marginTop:4,fontFamily:"var(--mono)"}}>
+                {s.risk?.toUpperCase()} · {s.n} {isIt?"partite":"picks"} · {s.sport}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{textAlign:"center",padding:"8px 16px",background:"var(--card2)",borderRadius:12,border:"1px solid var(--border)"}}>
+                <div style={{fontFamily:"var(--display)",fontSize:22,color:"var(--gold)"}}>{s.quota}x</div>
+                <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>quota</div>
+              </div>
+              {esito==="pending" ? (
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <button onClick={()=>{updateEsito(s.id,"won");setSelectedSchedina({...s,status:"won"});}}
+                    style={{padding:"8px 16px",borderRadius:10,background:"rgba(0,224,144,0.1)",border:"1px solid rgba(0,224,144,0.3)",color:"var(--green)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    ✓ {isIt?"VINTA":"WON"}
+                  </button>
+                  <button onClick={()=>{updateEsito(s.id,"lost");setSelectedSchedina({...s,status:"lost"});}}
+                    style={{padding:"8px 16px",borderRadius:10,background:"rgba(255,68,102,0.1)",border:"1px solid rgba(255,68,102,0.3)",color:"var(--red)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    ✗ {isIt?"PERSA":"LOST"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{padding:"10px 20px",borderRadius:12,
+                  background:esito==="won"?"rgba(0,224,144,0.1)":"rgba(255,68,102,0.1)",
+                  border:`1px solid ${esito==="won"?"rgba(0,224,144,0.3)":"rgba(255,68,102,0.3)"}`,
+                  color:esito==="won"?"var(--green)":"var(--red)",
+                  fontSize:14,fontWeight:700,textAlign:"center"}}>
+                  {esito==="won"?(isIt?"🏆 VINTA":"🏆 WON"):(isIt?"❌ PERSA":"❌ LOST")}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {matches.length > 0 ? matches.map((m,i)=>(
+              <div key={i} style={{background:"var(--card2)",borderRadius:12,padding:"12px 16px",border:"1px solid var(--border)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"white"}}>{m.teams}</div>
+                    <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:2}}>{m.league} · {m.time}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"var(--cyan)"}}>{m.selection}</div>
+                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)"}}>{m.single_prob}% · {m.ai_edge}</div>
+                    </div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,color:"var(--gold)",background:"rgba(245,184,0,0.08)",border:"1px solid rgba(245,184,0,0.2)",padding:"4px 10px",borderRadius:8}}>{m.quota}</div>
+                  </div>
+                </div>
+                {m.stat_chips?.length>0&&(
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>
+                    {m.stat_chips.map((ch,j)=>(
+                      <span key={j} style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"rgba(0,212,255,0.07)",color:"var(--cyan)",fontFamily:"var(--mono)"}}>{ch}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )) : <div style={{color:"var(--muted2)",fontSize:13,padding:16,textAlign:"center"}}>{isIt?"Dettagli non disponibili":"Details not available"}</div>}
+          </div>
+
+          {(s.full?.reasoning||s.reasoning) && (
+            <div style={{marginTop:16,padding:14,background:"rgba(0,212,255,0.02)",borderRadius:12,border:"1px solid rgba(0,212,255,0.1)"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--cyan)",letterSpacing:2,marginBottom:8,textTransform:"uppercase"}}>🧠 AI Analysis</div>
+              <div style={{fontSize:12,color:"var(--muted3)",lineHeight:1.8}}>{s.full?.reasoning||s.reasoning}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{maxWidth:760}}>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+        {[
+          {v:history.length,l:isIt?"Totali":"Total",c:"var(--cyan)"},
+          {v:wins,l:isIt?"Vinte":"Won",c:"var(--green)"},
+          {v:lost2,l:isIt?"Perse":"Lost",c:"var(--red)"},
+          {v:winRate+"%",l:"Win Rate",c:"var(--gold)"},
+        ].map((s,i)=>(
+          <div key={i} style={{background:"var(--card)",borderRadius:14,padding:"14px",textAlign:"center",border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--display)",fontSize:26,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:9,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase",marginTop:2}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",justifyContent:"space-between"}}>
+        <div style={{display:"flex",gap:6}}>
+          {[["all",isIt?"Tutte":"All"],["pending",isIt?"In attesa":"Pending"],["won",isIt?"Vinte":"Won"],["lost",isIt?"Perse":"Lost"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setFilter(k)}
+              style={{padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",
+                background:filter===k?"rgba(0,212,255,0.1)":"transparent",
+                borderColor:filter===k?"var(--cyan)":"var(--border)",
+                color:filter===k?"var(--cyan)":"var(--muted2)"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {[["month",isIt?"Per mese":"By month"],["day",isIt?"Per giorno":"By day"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)}
+              style={{padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",transition:"all 0.2s",
+                background:view===k?"rgba(139,92,246,0.1)":"transparent",
+                borderColor:view===k?"var(--purple)":"var(--border)",
+                color:view===k?"var(--purple)":"var(--muted2)"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grouped list */}
+      {filtered.length === 0 ? (
+        <div style={{textAlign:"center",padding:48,color:"var(--muted2)"}}>
+          <div style={{fontSize:32,marginBottom:12}}>📋</div>
+          <div style={{fontSize:14}}>{isIt?"Nessuna schedina trovata":"No bets found"}</div>
+        </div>
+      ) : (
+        Object.entries(grouped).sort((a,b)=>b[0].localeCompare(a[0])).map(([key, items])=>(
+          <div key={key} style={{marginBottom:20}}>
+            {/* Group header */}
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--text2)"}}>{formatGroupKey(key)}</div>
+              <div style={{flex:1,height:1,background:"var(--border)"}}/>
+              <div style={{fontSize:11,color:"var(--muted2)",fontFamily:"var(--mono)"}}>{items.length} {isIt?"schedine":"bets"}</div>
+            </div>
+            {/* Items */}
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {items.map(h=>{
+                const esito = h.status||h.esito||"pending";
+                return (
+                  <div key={h.id} onClick={()=>setSelectedSchedina(h)}
+                    style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:"13px 16px",cursor:"pointer",transition:"all 0.18s",display:"flex",alignItems:"center",gap:12}}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}>
+                    <div style={{fontSize:20}}>{h.sport}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.matches}</div>
+                      <div style={{fontSize:10,color:"var(--muted2)",fontFamily:"var(--mono)",marginTop:3}}>
+                        {h.date} · {h.n} {isIt?"partite":"picks"} · {h.risk?.toUpperCase()}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                      <span style={{fontFamily:"var(--mono)",fontSize:13,fontWeight:700,color:"var(--gold)"}}>{h.quota}x</span>
+                      <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
+                        background:esito==="won"?"rgba(0,224,144,0.08)":esito==="lost"?"rgba(255,68,102,0.08)":"rgba(0,212,255,0.08)",
+                        color:esito==="won"?"var(--green)":esito==="lost"?"var(--red)":"var(--cyan)",
+                        border:`1px solid ${esito==="won"?"rgba(0,224,144,0.2)":esito==="lost"?"rgba(255,68,102,0.2)":"rgba(0,212,255,0.2)"}`}}>
+                        {esito==="won"?(isIt?"VINTA":"WON"):esito==="lost"?(isIt?"PERSA":"LOST"):(isIt?"ATTESA":"PENDING")}
+                      </span>
+                      <span style={{color:"var(--muted2)"}}>›</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function DashWins({ lang, history = [] }) {
+  const t = T[lang].dash;
+  const isIt = lang==="it";
+  const wonSchedule = history.filter(h=>(h.status||h.esito)==="won");
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div>
+          <div style={{fontFamily:"var(--display)",fontSize:24,letterSpacing:1,color:"white"}}>{t.hallTitle}</div>
+          <div style={{fontSize:13,color:"var(--muted2)",marginTop:2}}>{t.hallSub}</div>
+        </div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--green)",background:"rgba(0,224,144,0.07)",border:"1px solid rgba(0,224,144,0.2)",padding:"5px 12px",borderRadius:20}}>● LIVE</div>
+      </div>
+      <LiveTicker/>
+      <div className="dash-wins-grid" style={{marginTop:16}}>
+        {wonSchedule.length === 0 ? (
+          <div style={{gridColumn:"1/-1",textAlign:"center",padding:"48px 24px",color:"var(--muted2)"}}>
+            <div style={{fontSize:40,marginBottom:12}}>🏆</div>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--text)",marginBottom:8}}>
+              {isIt?"Nessuna schedina vincente ancora":"No winning bets yet"}
+            </div>
+            <div style={{fontSize:13,color:"var(--muted2)"}}>
+              {isIt?"Genera una schedina, scommetti e segna le vincite dalla sezione Schedine!":"Generate a bet, play it and mark wins from the Bets section!"}
+            </div>
+          </div>
+        ) : wonSchedule.map((wn,idx)=>{
+          const matches = wn.details || wn.full?.matches || [];
+          return (
+            <div className="dash-win-card" key={wn.id} style={{animation:"popIn 0.4s ease both",animationDelay:idx*0.06+"s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:16}}>{wn.sport}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>{wn.risk?.toUpperCase()}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--muted)"}}>{wn.date}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:"var(--green)",background:"rgba(0,224,144,0.08)",border:"1px solid rgba(0,224,144,0.2)",padding:"2px 8px",borderRadius:20}}>✓ VINTA</span>
+                </div>
+              </div>
+              {matches.slice(0,4).map((m,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"4px 0",borderBottom:i<Math.min(matches.length,4)-1?"1px solid var(--border)":"none"}}>
+                  <span style={{color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"60%"}}>{m.teams}</span>
+                  <span style={{color:"var(--green)",fontWeight:700,fontFamily:"var(--mono)",flexShrink:0}}>{m.selection} {m.quota}x</span>
+                </div>
+              ))}
+              {matches.length > 4 && <div style={{fontSize:10,color:"var(--muted2)",marginTop:4}}>+{matches.length-4} {isIt?"altre partite":"more matches"}</div>}
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                <div>
+                  <div style={{fontFamily:"var(--display)",fontSize:22,color:"var(--gold)"}}>{wn.quota}x</div>
+                  <div style={{fontSize:10,color:"var(--muted2)"}}>{wn.n} {isIt?"partite":"picks"}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"var(--green)"}}>🏆 {isIt?"VINCITA":"WIN"}</div>
+                  <div style={{fontSize:10,color:"var(--muted2)",marginTop:3}}>{user?.name||"Tu"}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE PAGE
+// ═══════════════════════════════════════════════════════════
+function ProfilePage({ user, lang, history = [] }) {
+  const isIt = lang==="it";
+  const [saved, setSaved] = useState(false);
+  const [prefs, setPrefs] = useState({
+    defaultRisk: user?.profile?.default_risk || "balanced",
+    defaultMatches: user?.profile?.default_matches || 3,
+    emailAlerts: user?.profile?.email_alerts ?? true,
+  });
+
+  // Real stats from history
+  const total = history.length;
+  const won = history.filter(h=>(h.status||h.esito)==="won").length;
+  const lost = history.filter(h=>(h.status||h.esito)==="lost").length;
+  const pending = history.filter(h=>(h.status||h.esito||"pending")==="pending").length;
+  const winRate = (won+lost) > 0 ? Math.round((won/(won+lost))*100) : 0;
+  const avgQuota = total > 0 ? (history.reduce((a,h)=>a+(parseFloat(h.quota)||0),0)/total).toFixed(2) : "0";
+  // Streak: consecutive won from most recent
+  let streak = 0;
+  for(let i=0; i<history.length; i++) {
+    const e = history[i].status||history[i].esito||"pending";
+    if(e==="won") streak++; else if(e==="lost") break; else break;
+  }
+
+  const memberSince = user?.profile?.created_at
+    ? new Date(user.profile.created_at).toLocaleDateString(isIt?"it-IT":"en-GB",{month:"long",year:"numeric"})
+    : "2026";
+
+  const save = async () => {
+    if(user?.token && user?.id) {
+      await sb.updateProfile(user.id, user.token, {
+        default_risk: prefs.defaultRisk,
+        default_matches: prefs.defaultMatches,
+        email_alerts: prefs.emailAlerts,
+      }).catch(()=>{});
+    }
+    setSaved(true); setTimeout(()=>setSaved(false),2500);
+  };
+
+  return (
+    <div style={{maxWidth:700}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,padding:24,background:"var(--card)",borderRadius:18,border:"1px solid var(--border)"}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,var(--cyan),var(--purple))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:900,color:"#05080f",flexShrink:0}}>
+          {(user.name||"U")[0].toUpperCase()}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:20,fontWeight:700,color:"white"}}>{user.name}</div>
+          <div style={{fontSize:13,color:"var(--muted2)",marginTop:2}}>{user.email}</div>
+          <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"var(--gold)",background:"rgba(255,200,0,0.1)",border:"1px solid rgba(255,200,0,0.2)",padding:"2px 10px",borderRadius:20}}>
+              ⭐ {user.plan==="elite"?"Elite":user.plan==="pro"?"Pro":"Free"}
+            </span>
+            <span style={{fontSize:11,color:"var(--muted2)",fontFamily:"var(--mono)"}}>
+              {isIt?"Membro da":"Member since"} {memberSince}
+            </span>
+          </div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontFamily:"var(--display)",fontSize:28,color:"var(--cyan)"}}>{total}</div>
+          <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:1}}>{isIt?"SCHEDINE":"BETS"}</div>
+        </div>
+      </div>
+
+      {/* Real Stats */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:16}}>📊 {isIt?"Le tue statistiche reali":"Your real statistics"}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
           {[
-            {v:"24",l:isIt?"Schedine totali":"Total bets",c:"var(--cyan)"},
-            {v:"16",l:isIt?"Vinte":"Won",c:"var(--green)"},
-            {v:"67%",l:isIt?"Successo":"Win rate",c:"var(--gold)"},
-            {v:"6.8x",l:isIt?"Quota media":"Avg odds",c:"var(--purple)"},
-            {v:"€420",l:isIt?"Profitto stimato":"Est. profit",c:"var(--green)"},
-            {v:"8",l:isIt?"Serie attuale":"Current streak",c:"var(--cyan)"},
+            {v:total,l:isIt?"Schedine totali":"Total bets",c:"var(--cyan)"},
+            {v:won,l:isIt?"Vinte":"Won",c:"var(--green)"},
+            {v:lost,l:isIt?"Perse":"Lost",c:"var(--red)"},
+            {v:winRate+"%",l:isIt?"Win rate":"Win rate",c:"var(--gold)"},
+            {v:avgQuota+"x",l:isIt?"Quota media":"Avg odds",c:"var(--purple)"},
+            {v:streak,l:isIt?"Serie vincente":"Win streak",c:"var(--cyan)"},
           ].map((s,i)=>(
             <div key={i} style={{background:"var(--card2)",borderRadius:12,padding:"14px 12px",textAlign:"center",border:"1px solid var(--border)"}}>
-              <div style={{fontFamily:"var(--display)",fontSize:22,color:s.c,marginBottom:4}}>{s.v}</div>
-              <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:0.5}}>{s.l}</div>
+              <div style={{fontFamily:"var(--display)",fontSize:24,color:s.c,marginBottom:4}}>{s.v}</div>
+              <div style={{fontSize:10,color:"var(--muted2)",letterSpacing:0.5,textTransform:"uppercase"}}>{s.l}</div>
             </div>
           ))}
         </div>
+        {pending > 0 && (
+          <div style={{marginTop:12,padding:"8px 14px",background:"rgba(0,212,255,0.05)",borderRadius:10,border:"1px solid rgba(0,212,255,0.15)",fontSize:12,color:"var(--cyan)"}}>
+            ⏳ {pending} {isIt?"schedine in attesa di risultato — vai su Schedine per aggiornarle":"bets pending result — go to Bets to update them"}
+          </div>
+        )}
+      </div>
+
+      {/* Preferenze */}
+      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:700,color:"white",marginBottom:20}}>⚙️ {isIt?"Preferenze Default":"Default Preferences"}</div>
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Rischio default":"Default risk"}</div>
+          <div style={{display:"flex",gap:8}}>
+            {["safe","balanced","high"].map(r=>(
+              <button key={r} onClick={()=>setPrefs(p=>({...p,defaultRisk:r}))}
+                style={{flex:1,padding:"8px 4px",borderRadius:10,border:"1px solid",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s",
+                  background:prefs.defaultRisk===r?"rgba(0,212,255,0.1)":"var(--card2)",
+                  borderColor:prefs.defaultRisk===r?"var(--cyan)":"var(--border)",
+                  color:prefs.defaultRisk===r?"var(--cyan)":"var(--muted2)"}}>
+                {r==="safe"?"🟢 Safe":r==="balanced"?"🟡 Balanced":"🔴 High"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Partite default":"Default matches"}</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[1,2,3,5,8,10].map(n=>(
+              <button key={n} onClick={()=>setPrefs(p=>({...p,defaultMatches:n}))}
+                style={{padding:"6px 14px",borderRadius:8,border:"1px solid",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:prefs.defaultMatches===n?"rgba(0,212,255,0.1)":"var(--card2)",
+                  borderColor:prefs.defaultMatches===n?"var(--cyan)":"var(--border)",
+                  color:prefs.defaultMatches===n?"var(--cyan)":"var(--muted2)"}}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:12,color:"var(--muted2)",marginBottom:8,fontWeight:600}}>{isIt?"Notifiche email":"Email notifications"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div onClick={()=>setPrefs(p=>({...p,emailAlerts:!p.emailAlerts}))}
+              style={{width:44,height:24,borderRadius:12,background:prefs.emailAlerts?"var(--cyan)":"var(--card2)",border:"1px solid var(--border2)",cursor:"pointer",position:"relative",transition:"all 0.3s"}}>
+              <div style={{position:"absolute",top:3,left:prefs.emailAlerts?22:3,width:16,height:16,borderRadius:"50%",background:"white",transition:"all 0.3s"}}/>
+            </div>
+            <span style={{fontSize:12,color:"var(--muted2)"}}>{prefs.emailAlerts?(isIt?"Attive":"Active"):(isIt?"Disattive":"Disabled")}</span>
+          </div>
+        </div>
+        <button onClick={save} style={{width:"100%",padding:"12px",borderRadius:12,background:saved?"var(--green)":"var(--cyan)",color:"#05080f",border:"none",fontWeight:700,fontSize:13,cursor:"pointer",transition:"all 0.3s"}}>
+          {saved?(isIt?"✓ Salvato!":"✓ Saved!"):(isIt?"Salva Preferenze":"Save Preferences")}
+        </button>
       </div>
 
       {/* Email automatiche info */}
@@ -2053,9 +2795,9 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
             updateEsito={updateEsito}
           />
         )}
-        {activeNav===2 && <DashWins lang={lang}/>}
+        {activeNav===2 && <DashWins lang={lang} history={history}/>}
         {activeNav===3 && <AnalisiPage lang={lang}/>}
-        {activeNav===4 && <ProfilePage user={user} lang={lang} updateEsito={updateEsito}/>}
+        {activeNav===4 && <ProfilePage user={user} lang={lang} history={history}/>}
 
         {activeNav!==1 && activeNav!==2 && activeNav!==3 && activeNav!==4 && (<>
           {/* Stats bar */}
