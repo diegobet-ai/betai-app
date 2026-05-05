@@ -1035,19 +1035,26 @@ function Auth({ onSuccess, onBack, lang }) {
         setTab("login");
       } else {
         const res = await sb.signIn(email, password);
+        console.log("BetAI signIn response:", JSON.stringify(res).slice(0,200));
         if (res.error) {
           if(res.error.message?.includes("Email not confirmed"))
             throw new Error(isIt?"Conferma prima la tua email!":"Please confirm your email first!");
           throw new Error(isIt?"Email o password errati":"Invalid email or password");
         }
-        sb.setSession({ access_token: res.access_token, user: res.user });
-        const profile = await sb.getProfile(res.user.id, res.access_token);
+        // Supabase can return user in different places
+        const authUser = res.user || res.data?.user || res.session?.user;
+        const accessToken = res.access_token || res.data?.session?.access_token || res.session?.access_token;
+        if (!authUser || !accessToken) {
+          throw new Error(isIt?"Risposta auth non valida, riprova":"Invalid auth response, please retry");
+        }
+        sb.setSession({ access_token: accessToken, user: authUser });
+        const profile = await sb.getProfile(authUser.id, accessToken).catch(()=>null);
         onSuccess({
-          id: res.user.id,
+          id: authUser.id,
           name: profile?.name || name || email.split("@")[0],
-          email: res.user.email,
+          email: authUser.email,
           plan: profile?.plan || "free",
-          token: res.access_token,
+          token: accessToken,
           profile,
         });
       }
@@ -2402,9 +2409,16 @@ export default function App() {
     const session = sb.getSession();
     if(session?.access_token && session?.user) {
       sb.getProfile(session.user.id, session.access_token).then(profile=>{
-        setUser({ id:session.user.id, name:profile?.name||session.user.email.split("@")[0], email:session.user.email, plan:profile?.plan||"free", token:session.access_token, profile });
+        setUser({ 
+          id: session.user.id, 
+          name: profile?.name || session.user.email?.split("@")[0] || "User", 
+          email: session.user.email, 
+          plan: profile?.plan || "free", 
+          token: session.access_token, 
+          profile 
+        });
         setPage("dashboard");
-      }).catch(()=>sb.clearSession());
+      }).catch(()=>{ sb.clearSession(); });
     }
   },[]);
 
