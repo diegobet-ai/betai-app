@@ -3,9 +3,6 @@ import { useState, useEffect, useCallback } from "react";
 // ═══════════════════════════════════════════════════════════
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
-
 const SUPA_URL = "https://yydtatsromgfdykvjmbk.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZHRhdHNyb21nZmR5a3ZqbWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzEyOTAsImV4cCI6MjA4OTQwNzI5MH0.bzQX0BDhoiHhqgZMd1J3zjdvx62SEuDxfo9nrMrBV18";
 
@@ -684,15 +681,15 @@ function TodayMatches({ lang, onMatchesLoaded }) {
       });
 
       allMatches.sort((a,b) => a.timestamp - b.timestamp);
-      // Filtra: oggi + domani
+      // Filtra: prossime 72 ore (3 giorni) per coprire fusi orari
       const now = new Date();
-      const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
-      const tomorrowEnd = new Date(now); tomorrowEnd.setHours(47,59,59,999);
-      const todayTomorrow = allMatches.filter(m => m.timestamp >= todayStart && m.timestamp <= tomorrowEnd);
-      const toShow = todayTomorrow.length > 0 ? todayTomorrow : allMatches.slice(0,30);
+      const from = new Date(now.getTime() - 2*60*60*1000); // 2 ore fa (partite iniziate)
+      const to = new Date(now.getTime() + 72*60*60*1000);  // prossimi 3 giorni
+      const upcoming = allMatches.filter(m => m.timestamp >= from && m.timestamp <= to);
+      const toShow = upcoming.length > 0 ? upcoming : allMatches.slice(0,40);
       setMatches(toShow);
       if (onMatchesLoaded) onMatchesLoaded(toShow);
-      console.log("BetAI partite oggi+domani:", todayTomorrow.length, "| totale API:", allMatches.length);
+      console.log("BetAI partite prossime 72h:", upcoming.length, "| totale API:", allMatches.length);
     } catch(e) {
       console.error("BetAI fetch error:", e);
       setError(lang==="it"?"Errore nel caricamento: "+e.message:"Error loading: "+e.message);
@@ -1966,11 +1963,23 @@ LINGUA RISPOSTA: ${isIt?"Italiano":"Inglese"}
 ╚═══════════════════════════╝
 
 ${hasMatches ? `PARTITE REALI DISPONIBILI (quote live bookmaker):
-${matchList}` : `NESSUNA PARTITA REALE DISPONIBILE - usa la tua conoscenza.
-Data odierna: ${new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}.
-Genera ${N} partite REALI che si giocano OGGI o nei prossimi 2 giorni di ${sportLabel}.
-Usa partite vere: Serie A, Champions League, Premier League, NBA, ecc. che sai essere programmate.
-Inventa quote realistiche nella fascia ${minQ}-${maxQ===99?20:maxQ} basandoti sulle forze reali delle squadre.`}
+${matchList}` : `NESSUNA PARTITA REALE DISPONIBILE DALL'API.
+USA LA TUA CONOSCENZA AGGIORNATA:
+Data ESATTA di oggi: ${new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}.
+Devi trovare ${N} partite che si giocano ESATTAMENTE OGGI o domani (non ieri, non la prossima settimana).
+Sport richiesti: ${sportLabel}.
+
+Pensa a quali partite reali si giocano oggi:
+- Serie A, Premier League, La Liga, Bundesliga, Ligue 1 giocano nei weekend e infrasettimanali
+- Champions League / Europa League giocano il martedi/mercoledi/giovedi
+- NBA gioca quasi ogni giorno
+- Usa la tua conoscenza del calendario sportivo reale per questa data specifica.
+
+Per ogni partita indica:
+- Squadre reali che si affrontano oggi
+- Orario reale stimato
+- Quote realistiche basate sui valori reali delle squadre
+- Fascia quote OBBLIGATORIA: ${minQ} - ${maxQ===99?20:maxQ}`}
 
 ANALISI DA FARE PER OGNI PARTITA:
 Per ogni partita analizza TUTTI i mercati disponibili (1X2, Over/Under, Handicap, BTTS, ecc.):
