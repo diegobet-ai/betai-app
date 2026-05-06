@@ -107,6 +107,15 @@ const sb = {
     });
   },
 
+  async resetPassword(email) {
+    const r = await fetch(SUPA_URL+"/auth/v1/recover", {
+      method:"POST",
+      headers:{"apikey":SUPA_ANON,"Content-Type":"application/json"},
+      body:JSON.stringify({email})
+    });
+    return r.json();
+  },
+
   getSession() {
     try { return JSON.parse(localStorage.getItem("betai_sess")||"null"); } catch { return null; }
   },
@@ -382,7 +391,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .ai-reasoning-label{font-size:9px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
 .ai-reasoning-text{font-size:12px;color:var(--muted3);line-height:1.8;}
 .cursor::after{content:'|';animation:blink 0.7s infinite;color:var(--cyan);}
-.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.result-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .rs-box{background:var(--card2);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border);}
 
 /* ── HISTORY ── */
@@ -591,6 +600,7 @@ function TodayMatches({ lang, onMatchesLoaded }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState("Tutti");
+  const [timeFilter, setTimeFilter] = useState("Tutti");
   const [selectedOdds, setSelectedOdds] = useState({});
 
   const fetchMatches = async () => {
@@ -667,12 +677,17 @@ function TodayMatches({ lang, onMatchesLoaded }) {
           }
 
           const matchTime = new Date(event.commence_time);
+          const now2 = new Date();
+          const isToday = matchTime.toDateString() === now2.toDateString();
+          const isTomorrow = matchTime.toDateString() === new Date(now2.getTime()+86400000).toDateString();
+          const dayLabel = isToday ? "Oggi" : isTomorrow ? "Domani" : matchTime.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"});
           allMatches.push({
             id: event.id, sportKey,
             league: label.name, cat: label.cat, emoji: label.emoji,
             home: event.home_team, away: event.away_team,
             teams: `${event.home_team} vs ${event.away_team}`,
             time: matchTime.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),
+            date: dayLabel,
             timestamp: matchTime,
             home_odds, away_odds, draw_odds,
             allMarkets,
@@ -766,7 +781,7 @@ function TodayMatches({ lang, onMatchesLoaded }) {
                 <div className="match-row-meta">
                   <span className="match-row-league">{m.league}</span>
                   <span style={{color:"var(--muted)",fontSize:10}}>•</span>
-                  <span className="match-row-time">⏰ {m.time}</span>
+                  <span className="match-row-time">{m.date&&m.date!=="Oggi"?<span style={{color:"var(--muted2)",marginRight:3}}>{m.date}</span>:null} ⏰ {m.time}</span>
                 </div>
               </div>
               <div className="match-row-odds">
@@ -1020,6 +1035,7 @@ function Auth({ onSuccess, onBack, lang }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stake, setStake] = useState(10);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -1097,6 +1113,19 @@ function Auth({ onSuccess, onBack, lang }) {
             {tab==="login"?t.c1:t.c2}
           </span>
         </div>
+        {tab==="login" && (
+          <div style={{textAlign:"center",marginTop:10}}>
+            <span style={{fontSize:12,color:"var(--cyan)",cursor:"pointer",fontWeight:600}}
+              onClick={async()=>{
+                if(!email){setError(isIt?"Inserisci la tua email":"Enter your email");return;}
+                const r = await sb.resetPassword(email);
+                if(r.error) setError(r.error.message);
+                else setSuccess(isIt?"Email per reset password inviata!":"Password reset email sent!");
+              }}>
+              {isIt?"Password dimenticata?":"Forgot password?"}
+            </span>
+          </div>
+        )}
         <div style={{textAlign:"center",marginTop:14}}>
           <span style={{fontSize:12,color:"var(--muted)",cursor:"pointer"}} onClick={onBack}>
             {isIt?"← Torna alla home":"← Back to home"}
@@ -1343,15 +1372,52 @@ function ProfilePage({ user, lang, history = [] }) {
 // ═══════════════════════════════════════════════════════════
 function AnalisiPage({ lang }) {
   const isIt = lang==="it";
+  const [mode, setMode] = useState("manual"); // "manual" | "photo"
   const [matches, setMatches] = useState([{id:1,teams:"",selection:"",quota:""}]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [uploadedBase64, setUploadedBase64] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const addMatch = () => setMatches(m=>[...m,{id:Date.now(),teams:"",selection:"",quota:""}]);
   const removeMatch = (id) => setMatches(m=>m.filter(x=>x.id!==id));
   const updateMatch = (id,field,val) => setMatches(m=>m.map(x=>x.id===id?{...x,[field]:val}:x));
+
+  const handleFile = (file) => {
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImage(e.target.result);
+      setUploadedBase64(e.target.result.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyzePhoto = async () => {
+    if(!uploadedBase64) return;
+    setLoading(true); setResult(null); setReasoning("");
+    try {
+      const res = await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:"image/jpeg",data:uploadedBase64}},
+          {type:"text",text:`Sei BetAI. Analizza la schedina in questa immagine.
+Estrai tutte le selezioni (squadre, esito, quota).
+Per ogni selezione analizza: prob implicita, prob stimata reale, edge, giudizio.
+Rispondi SOLO in JSON:
+{"selections":[{"teams":"A vs B","selection":"1","quota":1.85,"implied_prob":54,"estimated_prob":62,"edge":"+8%","verdict":"OTTIMA","verdict_color":"green","reason":"breve spiegazione"}],"combined_prob":18,"total_quota":3.5,"overall_verdict":"SOLIDA","overall_color":"gold","tips":["consiglio"],"reasoning":"analisi dettagliata in italiano"}`}
+        ]}]})});
+      const data = await res.json();
+      const raw = data.content?.map(b=>b.text||"").join("")||"";
+      const parsed = JSON.parse(raw.replace(/```json/g,"").replace(/```/g,"").trim());
+      setResult(parsed);
+      let i=0; const txt=parsed.reasoning||""; setTyping(true);
+      const iv=setInterval(()=>{setReasoning(txt.slice(0,i));i+=6;if(i>txt.length){setReasoning(txt);setTyping(false);clearInterval(iv);}},18);
+    } catch(e) { setResult({error:true,message:e.message}); }
+    finally { setLoading(false); }
+  };
 
   const analyze = async () => {
     const valid = matches.filter(m=>m.teams.trim()&&m.selection.trim()&&m.quota);
@@ -1419,8 +1485,69 @@ Rispondi SOLO in JSON valido:
         </div>
       </div>
 
+      {/* Mode toggle */}
+      <div style={{display:"flex",gap:6,marginBottom:16,background:"var(--card2)",borderRadius:12,padding:4}}>
+        <button onClick={()=>setMode("manual")}
+          style={{flex:1,padding:"9px",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",border:"none",transition:"all 0.2s",
+            background:mode==="manual"?"var(--cyan)":"transparent",color:mode==="manual"?"#05080f":"var(--muted2)"}}>
+          ✏️ {isIt?"Inserimento manuale":"Manual input"}
+        </button>
+        <button onClick={()=>setMode("photo")}
+          style={{flex:1,padding:"9px",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",border:"none",transition:"all 0.2s",
+            background:mode==="photo"?"var(--cyan)":"transparent",color:mode==="photo"?"#05080f":"var(--muted2)"}}>
+          📸 {isIt?"Carica foto/file":"Upload photo/file"}
+        </button>
+      </div>
+
+      {/* Photo upload */}
+      {mode==="photo" && (
+        <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+          <div style={{fontSize:14,fontWeight:700,color:"white",marginBottom:16}}>
+            📸 {isIt?"Carica la foto della schedina":"Upload your bet slip photo"}
+          </div>
+          <div
+            onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+            onDragLeave={()=>setDragOver(false)}
+            onDrop={e=>{e.preventDefault();setDragOver(false);handleFile(e.dataTransfer.files[0]);}}
+            onClick={()=>document.getElementById("betai-file-input").click()}
+            style={{border:`2px dashed ${dragOver?"var(--cyan)":"var(--border2)"}`,borderRadius:14,padding:32,textAlign:"center",cursor:"pointer",transition:"all 0.2s",
+              background:dragOver?"rgba(0,212,255,0.04)":"transparent"}}>
+            {uploadedImage ? (
+              <div>
+                <img src={uploadedImage} alt="schedina" style={{maxWidth:"100%",maxHeight:300,borderRadius:10,marginBottom:12}}/>
+                <div style={{fontSize:12,color:"var(--green)",fontWeight:600}}>✓ {isIt?"Immagine caricata":"Image loaded"}</div>
+              </div>
+            ) : (
+              <div>
+                <div style={{fontSize:40,marginBottom:12}}>📷</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:6}}>
+                  {isIt?"Trascina la foto qui o clicca per selezionare":"Drag photo here or click to select"}
+                </div>
+                <div style={{fontSize:11,color:"var(--muted2)"}}>
+                  {isIt?"Supporta JPG, PNG, PDF, screenshot":"Supports JPG, PNG, PDF, screenshot"}
+                </div>
+              </div>
+            )}
+          </div>
+          <input id="betai-file-input" type="file" accept="image/*,.pdf" style={{display:"none"}}
+            onChange={e=>handleFile(e.target.files[0])}/>
+          {uploadedImage && (
+            <button onClick={analyzePhoto} disabled={loading}
+              style={{width:"100%",marginTop:14,padding:"13px",borderRadius:12,background:"var(--cyan)",color:"#05080f",border:"none",cursor:"pointer",fontSize:14,fontWeight:700}}>
+              {loading?(isIt?"Analisi in corso...":"Analyzing..."):(isIt?"🔬 Analizza schedina con AI":"🔬 Analyze bet with AI")}
+            </button>
+          )}
+          {uploadedImage && (
+            <button onClick={()=>{setUploadedImage(null);setUploadedBase64(null);setResult(null);}}
+              style={{width:"100%",marginTop:8,padding:"10px",borderRadius:12,background:"transparent",color:"var(--muted2)",border:"1px solid var(--border)",cursor:"pointer",fontSize:12}}>
+              {isIt?"Rimuovi immagine":"Remove image"}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Match inputs */}
-      <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
+      {mode==="manual" && <div style={{background:"var(--card)",borderRadius:18,border:"1px solid var(--border)",padding:24,marginBottom:16}}>
         <div style={{fontSize:14,fontWeight:700,color:"white",marginBottom:18}}>
           📋 {isIt?"Le tue selezioni":"Your selections"}
         </div>
@@ -1452,7 +1579,7 @@ Rispondi SOLO in JSON valido:
             {loading?(isIt?"Analisi in corso...":"Analyzing..."):(isIt?"🔬 Analizza con AI":"🔬 Analyze with AI")}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Results */}
       {result&&!result.error&&(
@@ -2267,6 +2394,33 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
               </div>
             </div>
 
+            {/* Puntata e vincita potenziale */}
+            <div style={{marginBottom:20,padding:16,background:"var(--card2)",borderRadius:14,border:"1px solid var(--border)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                <span style={{fontSize:12,fontWeight:700,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>💰 {isIt?"Puntata":"Stake"}</span>
+                <div style={{display:"flex",gap:6}}>
+                  {[5,10,20,50,100].map(v=>(
+                    <button key={v} onClick={()=>setStake(v)}
+                      style={{padding:"3px 8px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",
+                        background:stake===v?"rgba(245,184,0,0.1)":"transparent",
+                        borderColor:stake===v?"var(--gold)":"var(--border)",
+                        color:stake===v?"var(--gold)":"var(--muted2)"}}>
+                      €{v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:13,color:"var(--muted2)"}}>€</span>
+                <input type="number" min="1" max="10000" value={stake} onChange={e=>setStake(Math.max(1,+e.target.value))}
+                  style={{flex:1,padding:"8px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"var(--mono)"}}/>
+                <div style={{textAlign:"right",minWidth:100}}>
+                  <div style={{fontSize:11,color:"var(--muted2)"}}>{isIt?"Vincita pot.":"Pot. win"}</div>
+                  <div style={{fontFamily:"var(--display)",fontSize:18,color:"var(--green)"}}>€{(stake*quota).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
             <button className="gen-btn" onClick={generate} disabled={loading}>
               {loading?t.generating:t.genBtn}
             </button>
@@ -2288,10 +2442,35 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
             <div className="result-wrap">
               <div className="result-top">
                 <div style={{fontSize:14,fontWeight:700,color:"white"}}>📋 {t.result}</div>
-                <div className="result-pills">
-                  <span className="result-pill rp-green">~{result.estimated_prob?.toFixed(0)||"?"}% prob</span>
-                  <span className="result-pill rp-gold">quota {result.total_quota?.toFixed(2)||"?"}x</span>
-                  <span className="result-pill rp-cyan">{result.matches?.length||0} {isIt?"partite":"matches"}</span>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <div className="result-pills">
+                    <span className="result-pill rp-green">~{result.estimated_prob?.toFixed(0)||"?"}% prob</span>
+                    <span className="result-pill rp-gold">quota {result.total_quota?.toFixed(2)||"?"}x</span>
+                    <span className="result-pill rp-cyan">{result.matches?.length||0} {isIt?"partite":"matches"}</span>
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{
+                      const text = result.matches?.map(m=>`${m.teams} - ${m.selection} @${m.quota}`).join("
+")||"";
+                      const msg = `🎯 BetAI Schedina
+${text}
+💰 Quota: ${result.total_quota}x`;
+                      if(navigator.share) navigator.share({title:"BetAI Schedina",text:msg});
+                      else navigator.clipboard.writeText(msg).then(()=>alert(isIt?"Copiata!":"Copied!"));
+                    }} style={{padding:"4px 10px",borderRadius:8,background:"rgba(0,212,255,0.08)",border:"1px solid rgba(0,212,255,0.2)",color:"var(--cyan)",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      📤 {isIt?"Condividi":"Share"}
+                    </button>
+                    <button onClick={()=>{
+                      const text = result.matches?.map(m=>`${m.teams} - ${m.selection} @${m.quota}`).join("
+")||"";
+                      const wa = `https://wa.me/?text=${encodeURIComponent("🎯 BetAI Schedina
+"+text+"
+💰 Quota: "+result.total_quota+"x")}`;
+                      window.open(wa,"_blank");
+                    }} style={{padding:"4px 10px",borderRadius:8,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.2)",color:"#25d366",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      💬 WhatsApp
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="match-list">
@@ -2300,7 +2479,7 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
                     <div className="match-item-top">
                       <div>
                         <div className="match-teams">{m.teams}</div>
-                        <div className="match-meta">{m.league} · {m.time}</div>
+                        <div className="match-meta">{m.league} · {m.date ? m.date+" · " : ""}{m.time}</div>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{textAlign:"right"}}>
@@ -2328,6 +2507,7 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
               <div className="result-stats">
                 {[{v:`${result.estimated_prob?.toFixed(0)||"?"}%`,l:isIt?"Probabilità":"Probability",c:"var(--green)"},
                   {v:`${result.total_quota?.toFixed(2)||"?"}x`,l:isIt?"Quota Totale":"Total Odds",c:"var(--gold)"},
+                  {v:`€${(stake*(result.total_quota||1)).toFixed(2)}`,l:isIt?"Vincita Pot.":"Pot. Win",c:"var(--green)"},
                   {v:result.matches?.length||0,l:isIt?"Partite":"Matches",c:"var(--cyan)"}].map((s,i)=>(
                   <div className="rs-box" key={i}>
                     <div style={{fontFamily:"var(--display)",fontSize:24,color:s.c,marginBottom:2}}>{s.v}</div>
