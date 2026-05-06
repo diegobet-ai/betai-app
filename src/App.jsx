@@ -2450,22 +2450,16 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
                   </div>
                   <div style={{display:"flex",gap:6}}>
                     <button onClick={()=>{
-                      const text = result.matches?.map(m=>`${m.teams} - ${m.selection} @${m.quota}`).join("
-")||"";
-                      const msg = `🎯 BetAI Schedina
-${text}
-💰 Quota: ${result.total_quota}x`;
+                      const text = (result.matches||[]).map(m=>m.teams+" - "+m.selection+" @"+m.quota).join("\n");
+                      const msg = "🎯 BetAI Schedina\n"+text+"\n💰 Quota: "+result.total_quota+"x";
                       if(navigator.share) navigator.share({title:"BetAI Schedina",text:msg});
                       else navigator.clipboard.writeText(msg).then(()=>alert(isIt?"Copiata!":"Copied!"));
                     }} style={{padding:"4px 10px",borderRadius:8,background:"rgba(0,212,255,0.08)",border:"1px solid rgba(0,212,255,0.2)",color:"var(--cyan)",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                       📤 {isIt?"Condividi":"Share"}
                     </button>
                     <button onClick={()=>{
-                      const text = result.matches?.map(m=>`${m.teams} - ${m.selection} @${m.quota}`).join("
-")||"";
-                      const wa = `https://wa.me/?text=${encodeURIComponent("🎯 BetAI Schedina
-"+text+"
-💰 Quota: "+result.total_quota+"x")}`;
+                      const text2 = (result.matches||[]).map(m=>m.teams+" - "+m.selection+" @"+m.quota).join("\n");
+                      const wa = "https://wa.me/?text="+encodeURIComponent("🎯 BetAI Schedina\n"+text2+"\n💰 Quota: "+result.total_quota+"x");
                       window.open(wa,"_blank");
                     }} style={{padding:"4px 10px",borderRadius:8,background:"rgba(37,211,102,0.08)",border:"1px solid rgba(37,211,102,0.2)",color:"#25d366",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                       💬 WhatsApp
