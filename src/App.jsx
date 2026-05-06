@@ -1035,7 +1035,6 @@ function Auth({ onSuccess, onBack, lang }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [stake, setStake] = useState(10);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -1375,6 +1374,7 @@ function AnalisiPage({ lang }) {
   const [mode, setMode] = useState("manual"); // "manual" | "photo"
   const [matches, setMatches] = useState([{id:1,teams:"",selection:"",quota:""}]);
   const [loading, setLoading] = useState(false);
+  const [stake, setStake] = useState(10);
   const [result, setResult] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
