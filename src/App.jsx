@@ -1,3 +1,4 @@
+// BetAI v2.1 - 202605062006
 import { useState, useEffect, useCallback } from "react";
 
 // ═══════════════════════════════════════════════════════════
@@ -1374,7 +1375,6 @@ function AnalisiPage({ lang }) {
   const [mode, setMode] = useState("manual"); // "manual" | "photo"
   const [matches, setMatches] = useState([{id:1,teams:"",selection:"",quota:""}]);
   const [loading, setLoading] = useState(false);
-  const [stake, setStake] = useState(10);
   const [result, setResult] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
@@ -1938,6 +1938,7 @@ function Dashboard({ user, onLogout, lang, setLang }) {
   const [prob, setProb] = useState(55);
   const [quota, setQuota] = useState(8);
   const [loading, setLoading] = useState(false);
+  const [stake, setStake] = useState(10);
   const [result, setResult] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [typing, setTyping] = useState(false);
@@ -2395,29 +2396,26 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
             </div>
 
             {/* Puntata e vincita potenziale */}
-            <div style={{marginBottom:20,padding:16,background:"var(--card2)",borderRadius:14,border:"1px solid var(--border)"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                <span style={{fontSize:12,fontWeight:700,color:"var(--muted2)",letterSpacing:1,textTransform:"uppercase"}}>💰 {isIt?"Puntata":"Stake"}</span>
-                <div style={{display:"flex",gap:6}}>
+            <div style={{marginBottom:20,padding:14,background:"var(--card2)",borderRadius:14,border:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:12,color:"var(--muted2)",fontWeight:600}}>💰 {isIt?"Puntata":"Stake"}</span>
+                <div style={{display:"flex",gap:4}}>
                   {[5,10,20,50,100].map(v=>(
                     <button key={v} onClick={()=>setStake(v)}
-                      style={{padding:"3px 8px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",
-                        background:stake===v?"rgba(245,184,0,0.1)":"transparent",
+                      style={{padding:"4px 9px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",border:"1px solid",
+                        background:stake===v?"rgba(245,184,0,0.12)":"transparent",
                         borderColor:stake===v?"var(--gold)":"var(--border)",
                         color:stake===v?"var(--gold)":"var(--muted2)"}}>
                       €{v}
                     </button>
                   ))}
+                  <input type="number" min="1" max="10000" value={stake} onChange={e=>setStake(Math.max(1,+e.target.value))}
+                    style={{width:64,padding:"4px 8px",borderRadius:6,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:12,fontWeight:700,outline:"none",fontFamily:"var(--mono)"}}/>
                 </div>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:13,color:"var(--muted2)"}}>€</span>
-                <input type="number" min="1" max="10000" value={stake} onChange={e=>setStake(Math.max(1,+e.target.value))}
-                  style={{flex:1,padding:"8px 12px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border2)",color:"var(--text)",fontSize:14,fontWeight:700,outline:"none",fontFamily:"var(--mono)"}}/>
-                <div style={{textAlign:"right",minWidth:100}}>
-                  <div style={{fontSize:11,color:"var(--muted2)"}}>{isIt?"Vincita pot.":"Pot. win"}</div>
-                  <div style={{fontFamily:"var(--display)",fontSize:18,color:"var(--green)"}}>€{(stake*quota).toFixed(2)}</div>
-                </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:10,color:"var(--muted2)"}}>{isIt?"Vincita potenziale":"Potential win"}</div>
+                <div style={{fontFamily:"var(--display)",fontSize:20,color:"var(--green)"}}>€{(stake*quota).toFixed(2)}</div>
               </div>
             </div>
 
@@ -2501,7 +2499,7 @@ RISPOSTA: solo JSON valido, zero testo extra, zero markdown:
               <div className="result-stats">
                 {[{v:`${result.estimated_prob?.toFixed(0)||"?"}%`,l:isIt?"Probabilità":"Probability",c:"var(--green)"},
                   {v:`${result.total_quota?.toFixed(2)||"?"}x`,l:isIt?"Quota Totale":"Total Odds",c:"var(--gold)"},
-                  {v:`€${(stake*(result.total_quota||1)).toFixed(2)}`,l:isIt?"Vincita Pot.":"Pot. Win",c:"var(--green)"},
+                  {v:"€"+(stake*(result.total_quota||1)).toFixed(2),l:isIt?"Vincita Pot.":"Pot. Win",c:"var(--green)"},
                   {v:result.matches?.length||0,l:isIt?"Partite":"Matches",c:"var(--cyan)"}].map((s,i)=>(
                   <div className="rs-box" key={i}>
                     <div style={{fontFamily:"var(--display)",fontSize:24,color:s.c,marginBottom:2}}>{s.v}</div>
